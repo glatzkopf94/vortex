@@ -1,10 +1,10 @@
-name: Smoke test published NKL release
+name: Smoke test published Vortex release
 
 on:
   workflow_dispatch:
   workflow_run:
     workflows:
-      - Build and publish NKL Restreamer
+      - Build and publish Vortex
     types:
       - completed
 
@@ -40,12 +40,13 @@ jobs:
           export RESTREAMER_CONTAINER_NAME="nkl-smoke-${GITHUB_RUN_ID}"
           export RESTREAMER_CONFIG_VOLUME="nkl-smoke-config-${GITHUB_RUN_ID}"
           export RESTREAMER_DATA_VOLUME="nkl-smoke-data-${GITHUB_RUN_ID}"
+          export RESTREAMER_TIMELAPSE_VOLUME="nkl-smoke-timelapse-${GITHUB_RUN_ID}"
           export RESTREAMER_HTTP_PORT=19080
           export RESTREAMER_API_PORT=19181
 
           cleanup() {
             docker compose -f compose.yaml down --remove-orphans >/dev/null 2>&1 || true
-            docker volume rm "$RESTREAMER_CONFIG_VOLUME" "$RESTREAMER_DATA_VOLUME" >/dev/null 2>&1 || true
+            docker volume rm "$RESTREAMER_CONFIG_VOLUME" "$RESTREAMER_DATA_VOLUME" "$RESTREAMER_TIMELAPSE_VOLUME" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
@@ -79,4 +80,4 @@ jobs:
           source release.env
           ./scripts/package-release.sh
           archive="dist/restreamer-nistkastenlivestream-${RELEASE_VERSION}.zip"
-          gh release upload "v${RELEASE_VERSION}" "$archive" "${archive}.sha256" --clobber
+          gh release upload "v${RELEASE_VERSION}" "$archive" "${archive}.sha256" "dist/vortex-${RELEASE_VERSION}.zip" "dist/vortex-${RELEASE_VERSION}.zip.sha256" --clobber

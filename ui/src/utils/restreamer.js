@@ -2114,16 +2114,17 @@ class Restreamer {
 				...cleanup_global,
 				{
 					pattern: cleanup_hls_segment_playlist,
-					max_file_age_seconds: parseInt(control.hls.listSize) > 0 ? parseInt(control.hls.segmentDuration) * (parseInt(control.hls.listSize) + 6) : 0,
+					max_file_age_seconds: getHLSSegmentCleanupAge(control),
 					purge_on_delete: true,
 				},
 				{
 					pattern: cleanup_hls_segment_filename,
-					max_files: parseInt(control.hls.listSize) > 0 ? parseInt(control.hls.listSize) + 6 : 0,
+					max_files: !control.hls.dvr?.enabled && parseInt(control.hls.listSize) > 0 ? parseInt(control.hls.listSize) + 6 : 0,
 					// Real DVR segment lengths differ slightly from hls_time because
 					// FFmpeg cuts at keyframes. An age limit based on the nominal
 					// duration can remove files still referenced by the playlist.
-					// Count-based and FFmpeg cleanup remain active.
+					// FFmpeg and playlist-aware manager cleanup own DVR retention.
+					// Core count limits can be stale after changing the DVR window.
 					max_file_age_seconds: getHLSSegmentCleanupAge(control),
 					purge_on_delete: true,
 				},
@@ -2133,7 +2134,7 @@ class Restreamer {
 			if (control.hls.master_playlist) {
 				output.cleanup.push({
 					pattern: cleanup_hls_master_playlist,
-					max_file_age_seconds: parseInt(control.hls.listSize) > 0 ? parseInt(control.hls.segmentDuration) * (parseInt(control.hls.listSize) + 6) : 0,
+					max_file_age_seconds: getHLSSegmentCleanupAge(control),
 					purge_on_delete: true,
 				});
 			}
@@ -2142,7 +2143,7 @@ class Restreamer {
 			if (!control.hls.lhls && control.hls.version === 7) {
 				output.cleanup.push({
 					pattern: cleanup_hls_fmp4_init_filename,
-					max_file_age_seconds: parseInt(control.hls.listSize) > 0 ? parseInt(control.hls.segmentDuration) * (parseInt(control.hls.listSize) + 6) : 0,
+					max_file_age_seconds: getHLSSegmentCleanupAge(control),
 					purge_on_delete: true,
 				});
 			}

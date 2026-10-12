@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { useLingui } from '@lingui/react';
 import { Trans, t } from '@lingui/macro';
@@ -68,7 +68,8 @@ export default function Edit({ restreamer = null }) {
 	const [$state, setState] = React.useState('disconnected');
 	const [$metadata, setMetadata] = React.useState({});
 	const [$settings, setSettings] = React.useState({});
-	const [$tab, setTab] = React.useState('embed');
+	const [params,setParams]=useSearchParams();
+	const [$tab, setTab] = React.useState(['embed','overlay','poster','playback'].includes(params.get('tab'))?params.get('tab'):'embed');
 	const [$revision, setRevision] = React.useState(0);
 	const [$saving, setSaving] = React.useState(false);
 	const [$error, setError] = React.useState({
@@ -268,6 +269,7 @@ export default function Edit({ restreamer = null }) {
 
 	const handleChangeTab = (event, value) => {
 		setTab(value);
+		setParams({tab:value},{replace:true});
 	};
 
 	const handleAbort = () => {

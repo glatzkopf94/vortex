@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { Trans } from '@lingui/macro';
@@ -18,7 +19,7 @@ export default function Invalid(props) {
 					</Grid>
 					<Grid item xs={12}>
 						<Typography>
-							<Trans>Connecting to Restreamer Core ...</Trans>
+							<Trans>Connecting to Vortex Core ...</Trans>
 						</Typography>
 					</Grid>
 				</Grid>

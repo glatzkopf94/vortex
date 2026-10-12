@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { isMobile } from 'react-device-detect';
@@ -326,7 +327,7 @@ function Resources({
 						)}
 					</ListItem>
 					{/* <ListItem divider>
-						<Button variant="service" color="primary" fullWidth size="large" component="a" href="https://service.datarhei.com" target="blank">
+						<Button variant="service" color="primary" fullWidth size="large" component="a" href="https://github.com/glatzkopf94/vortex/issues" target="blank">
 							<Trans>More details</Trans>
 						</Button>
 					</ListItem> */}
@@ -369,7 +370,7 @@ export default function Footer({
 						<Stack className="footerLeft" direction="row" alignItems="center" spacing={0}>
 							<Logo className={classes.logo} />
 							<Typography className="footerVersion">
-								{app} v{version.number} ({version.arch}) {name ? '- ' + name : ''}
+								Vortex - dev-23 1.5 Beta ({version.arch})
 							</Typography>
 						</Stack>
 						<Resources getResources={getResources} />

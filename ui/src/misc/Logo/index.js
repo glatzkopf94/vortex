@@ -1,24 +1,8 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
-
-import makeStyles from '@mui/styles/makeStyles';
-
-import company_logo from './images/logo.svg';
-
-const useStyles = makeStyles((theme) => ({
-	Logo: {
-		height: 27,
-	},
-}));
-
-export default function Logo(props) {
-	const classes = useStyles();
-
-	let link = 'https://datarhei.com';
-
-	// eslint-disable-next-line no-useless-escape
-	return (
-		<a href={link} className={classes.Logo} target="_blank" rel="noopener noreferrer">
-			<img src={company_logo} alt="datarhei logo" />
-		</a>
-	);
+import logo from './images/nkl-footer.png';
+export default function Logo({className}) {
+ return <a href="https://nistkasten-livestream.de" className={className} target="_blank" rel="noopener noreferrer" aria-label="Nistkasten Livestream" style={{display:'inline-flex',alignItems:'center',flexShrink:0,marginRight:12}}>
+  <img src={logo} alt="Nistkasten Livestream" style={{height:48,width:48,objectFit:'contain',display:'block',maxWidth:'100%'}} />
+ </a>;
 }

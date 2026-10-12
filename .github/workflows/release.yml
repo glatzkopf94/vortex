@@ -1,4 +1,4 @@
-name: Build and publish NKL Restreamer
+name: Build and publish Vortex
 
 on:
   workflow_dispatch:
@@ -29,12 +29,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          npm install --prefix /tmp/nkl-browser-test playwright@1.62.1
+          npm install --prefix /tmp/nkl-browser-test playwright@1.62.1 video.js@8.17.3 esbuild@0.25.0
           /tmp/nkl-browser-test/node_modules/.bin/playwright install --with-deps chromium
       - name: Echte HLS-Player mehrfach stoppen und reaktivieren
         env:
           NKL_PLAYWRIGHT: /tmp/nkl-browser-test/node_modules/playwright
         run: node tests/test-player-browser.cjs
+      - name: Playerlayout und Zeitmarkierungen
+        env:
+          NODE_PATH: /tmp/nkl-browser-test/node_modules
+        run: |
+          node tests/test-player-layout.cjs
+          node tests/test-player-markers.cjs
 
   build:
     name: Build and smoke test ${{ matrix.arch }}
@@ -60,7 +66,7 @@ jobs:
           set -euo pipefail
           source release.env
           expected_image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          if [[ "$GHCR_IMAGE" != "$expected_image" ]]; then
+          if [[ "$GHCR_IMAGE" != "$expected_image" && ! ( "$GITHUB_REPOSITORY" == "glatzkopf94/vortex" && "$GHCR_IMAGE" == "ghcr.io/glatzkopf94/restreamer-nistkastenlivestream" ) ]]; then
             echo "GHCR_IMAGE muss $expected_image entsprechen." >&2
             exit 1
           fi
@@ -71,12 +77,19 @@ jobs:
           echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
           echo "image=$GHCR_IMAGE" >> "$GITHUB_OUTPUT"
 
+      - name: FFmpeg fuer Diensttests installieren
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg python3-pyftpdlib
+
       - name: Statische Tests
         shell: bash
         run: |
           set -euo pipefail
           python3 tests/test-livechasing-manager.py
           python3 tests/test-dvr-retention.py
+          python3 tests/test-timelapse.py
+          python3 tests/test-timelapse-transfer.py
+          node tests/test-timelapse-poster.cjs
           python3 tests/test-player-ui.py
           python3 tests/test-player-cleanup.py
           node tests/test-player-behavior.js
@@ -130,9 +143,10 @@ jobs:
           data_volume="nkl-release-smoke-${arch}-data"
           cleanup() {
             docker compose -f compose.yaml down --remove-orphans >/dev/null 2>&1 || true
-            docker volume rm "$config_volume" "$data_volume" >/dev/null 2>&1 || true
+            docker volume rm "$config_volume" "$data_volume" "${RESTREAMER_TIMELAPSE_VOLUME}" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
+          export RESTREAMER_TIMELAPSE_VOLUME="nkl-release-smoke-${arch}-timelapse"
           docker volume create "$config_volume" >/dev/null
           docker volume create "$data_volume" >/dev/null
           cp .env.example .env
@@ -146,7 +160,7 @@ jobs:
             fi
             if [[ "$attempt" == 60 ]]; then
               docker compose -f compose.yaml ps
-              docker logs --tail 120 restreamer-nkl
+              docker compose -f compose.yaml logs --tail 120
               exit 1
             fi
             sleep 2
@@ -180,6 +194,12 @@ jobs:
             --tag "$GHCR_IMAGE:$PRODUCT_VERSION" \
             "$GHCR_IMAGE:$RELEASE_VERSION-amd64" \
             "$GHCR_IMAGE:$RELEASE_VERSION-arm64"
+          # Compatibility tags remain available to the already-installed NKL updater.
+          docker buildx imagetools create \
+            --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$RELEASE_VERSION" \
+            --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$PRODUCT_VERSION" \
+            "$GHCR_IMAGE:$RELEASE_VERSION-amd64" \
+            "$GHCR_IMAGE:$RELEASE_VERSION-arm64"
           docker buildx imagetools inspect --raw "$GHCR_IMAGE:$RELEASE_VERSION" > /tmp/nkl-manifest.json
           python3 scripts/verify-multiarch-manifest.py /tmp/nkl-manifest.json
 
@@ -189,10 +209,12 @@ jobs:
       - name: Workflow-Artefakt speichern
         uses: actions/upload-artifact@v7
         with:
-          name: restreamer-nistkastenlivestream-${{ github.sha }}
+          name: vortex-${{ github.sha }}
           path: |
             dist/restreamer-nistkastenlivestream-*.zip
             dist/restreamer-nistkastenlivestream-*.zip.sha256
+            dist/vortex-*.zip
+            dist/vortex-*.zip.sha256
           if-no-files-found: error
 
       - name: Release-Tag und GitHub-Release anlegen
@@ -223,13 +245,13 @@ jobs:
           fi
 
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$archive" "$checksum" --clobber
+            gh release upload "$tag" "$archive" "$checksum" "dist/vortex-${version}.zip" "dist/vortex-${version}.zip.sha256" --clobber
             gh release edit "$tag" \
               --title "$PRODUCT_LABEL / $version" \
               --notes-file RELEASE_NOTES.md
           else
             gh release create "$tag" \
-              "$archive" "$checksum" \
+              "$archive" "$checksum" "dist/vortex-${version}.zip" "dist/vortex-${version}.zip.sha256" \
               --target "$GITHUB_SHA" \
               --title "$PRODUCT_LABEL / $version" \
               --notes-file RELEASE_NOTES.md

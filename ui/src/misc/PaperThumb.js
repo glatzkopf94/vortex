@@ -10,8 +10,8 @@ const useStyles = makeStyles((theme) => ({
 	},
 }));
 
-export default function Component({ image = '', title = '', height = '0px' }) {
+export default function Component({ image = '', title = '', height = '0px', fit = 'cover' }) {
 	const classes = useStyles();
 
-	return <CardMedia className={classes.media} style={{ height: height }} image={image} title={title} />;
+	return <CardMedia className={classes.media} style={{ height: height, backgroundSize: fit }} image={image} title={title} />;
 }

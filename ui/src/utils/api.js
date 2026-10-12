@@ -162,6 +162,10 @@ class API {
 			return res;
 		}
 
+		if (options.expect === 'blob' && !isJSON) {
+			res.val = await response.blob();
+			return res;
+		}
 		if (isJSON === true) {
 			res.val = await response.json();
 		} else {

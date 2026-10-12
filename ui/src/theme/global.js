@@ -1,6 +1,7 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 /* eslint-disable import/no-anonymous-default-export */
 import base from './base';
-import background from '../assets/images/background-restreamer.png';
+import background from '../assets/images/vortex-background.jpg';
 
 export default {
 	html: {

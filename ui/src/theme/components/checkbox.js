@@ -2,13 +2,10 @@
 import base from '../base';
 
 export default {
-	styleOverrides: {
-		colorSecondary: {
-			'&.Mui-disabled': {
-				'&.MuiIconButton-label': {
-					color: base.palette.text.disabled,
-				},
-			},
-		},
-	},
+ styleOverrides: {
+  root: {
+   '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: '#64b5f6' },
+   '&.Mui-disabled': { color: base.palette.text.disabled },
+  },
+ },
 };

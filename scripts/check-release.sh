@@ -29,13 +29,13 @@ grep -Fq "${GHCR_IMAGE}:${RELEASE_VERSION}" compose.yaml || \
     fail "compose.yaml verwendet nicht das Release-Image"
 grep -Fq "\"version\": \"${RELEASE_VERSION}\"" ui/package.json || \
     fail "UI-Version stimmt nicht"
-grep -Fq "\"nklVersion\": \"${PRODUCT_LABEL#NKL }\"" ui/package.json || \
+grep -Fq "\"nklVersion\": \"${PRODUCT_LABEL#Vortex }\"" ui/package.json || \
     fail "NKL-Produktkennung stimmt nicht"
 grep -Fq -- "--extra-version=nkl-restreamer-${RELEASE_VERSION}" ffmpeg/Dockerfile || \
     fail "FFmpeg-Kennung stimmt nicht"
 grep -Fq "NKL_RELEASE_VERSION=${RELEASE_VERSION}" bundle/Dockerfile || \
     fail "NKL-Updatekennung im Image stimmt nicht"
-grep -Fq 'api.github.com/repos/glatzkopf94/restreamer-nistkastenlivestream/releases/latest' ui/src/version.js || \
+grep -Fq 'api.github.com/repos/glatzkopf94/vortex/releases/latest' ui/src/version.js || \
     fail "UI prueft nicht das NKL-GitHub-Repository"
 test -x scripts/nkl-update-agent.sh || fail "Host-Update-Agent ist nicht ausfuehrbar"
 test -x scripts/migrate-timestamp-repair.py || fail "Timestamp-Migration ist nicht ausfuehrbar"
@@ -51,8 +51,8 @@ grep -Fq 's/.*"tag_name"[[:space:]]*:' scripts/nkl-update-agent.sh || \
     fail "Update-Agent verarbeitet keine kompakte Release-JSON"
 grep -Fq "options.method === 'HEAD'" ui/src/utils/api.js || \
     fail "UI behandelt bodylose HEAD-Antworten nicht"
-grep -Fq 'RESTREAMER_CONTAINER_NAME=restreamer-nkl' .env.example || \
-    fail "Standard-Containername ist nicht restreamer-nkl"
+grep -Fq 'RESTREAMER_CONTAINER_NAME=vortex' .env.example || \
+    fail "Standard-Containername ist nicht vortex"
 grep -Fq 'RESTREAMER_CONFIG_VOLUME=restreamer-nkl-config' .env.example || \
     fail "Standard-Konfigurationsvolume ist nicht restreamer-nkl-config"
 grep -Fq 'RESTREAMER_DATA_VOLUME=restreamer-nkl-data' .env.example || \

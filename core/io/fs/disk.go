@@ -1,3 +1,4 @@
+// Modified 2026-10-10: compile the list filter once per scan, not per DVR segment.
 package fs
 
 import (
@@ -522,6 +523,14 @@ func (fs *diskFilesystem) RemoveAll() int64 {
 func (fs *diskFilesystem) List(path, pattern string) []FileInfo {
 	path = fs.cleanPath(path)
 	files := []FileInfo{}
+	var matcher glob.Glob
+	if len(pattern) != 0 {
+		var err error
+		matcher, err = glob.Compile(pattern, '/')
+		if err != nil {
+			return files
+		}
+	}
 
 	fs.walk(path, func(path string, info os.FileInfo) {
 		if path == fs.root {
@@ -537,10 +546,8 @@ func (fs *diskFilesystem) List(path, pattern string) []FileInfo {
 			return
 		}
 
-		if len(pattern) != 0 {
-			if ok, _ := glob.Match(pattern, name, '/'); !ok {
-				return
-			}
+		if matcher != nil && !matcher.Match(name) {
+			return
 		}
 
 		files = append(files, &diskFileInfo{

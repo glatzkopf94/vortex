@@ -1,6 +1,7 @@
 import React from 'react';
 
 import VideoJS from './videojs';
+import attachDVRMarkers from './dvrMarkers';
 
 export default function Player({
 	type = 'videojs-internal',
@@ -46,6 +47,7 @@ export default function Player({
 				onReady={(player) => {
 					if (dvr && dvr.enabled) {
 						player.addClass('vjs-live-dvr');
+						if(type==='videojs-public') attachDVRMarkers(player,source);
 					} else {
 						player.addClass('vjs-live-no-dvr');
 					}

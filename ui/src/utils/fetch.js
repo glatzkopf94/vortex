@@ -9,7 +9,7 @@ const fetch = async (url, options = {}) => {
 	const xhr = new XMLHttpRequest();
 
 	return new Promise((resolve, reject) => {
-		xhr.responseType = 'text';
+		xhr.responseType = options.expect === 'blob' ? 'blob' : 'text';
 		xhr.onload = () => {
 			const response = {
 				ok: false,
@@ -29,11 +29,12 @@ const fetch = async (url, options = {}) => {
 				status: xhr.status,
 				statusText: xhr.statusText,
 				data: xhr.response,
-				json: function () {
-					return JSON.parse(this.data);
+				json: async function () {
+					return JSON.parse(this.data instanceof Blob ? await this.data.text() : this.data);
 				},
+				blob: function () { return this.data; },
 				text: function () {
-					return this.data;
+					return this.data instanceof Blob ? this.data.text() : this.data;
 				},
 			};
 			if (xhr.status < 200 || xhr.status >= 300) {

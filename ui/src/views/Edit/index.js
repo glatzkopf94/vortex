@@ -144,6 +144,7 @@ export default function Edit({ restreamer = null }) {
 
 	const handleChangeTab = (event, value) => {
 		setTab(value);
+		navigate(`/${_channelid}/edit/${value}`, { replace: true });
 	};
 
 	const handleSourceEditDialog = (target) => (what) => {

@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { Trans } from '@lingui/macro';
@@ -13,12 +14,12 @@ import BoxText from '../../../misc/BoxText';
 const id = 'datarheicore';
 const name = 'datarhei Core';
 const version = '2.0';
-const stream_key_link_rtmp = 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/rtmp';
-const stream_key_link_srt = 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/srt';
+const stream_key_link_rtmp = 'https://github.com/glatzkopf94/vortex';
+const stream_key_link_srt = 'https://github.com/glatzkopf94/vortex';
 const description = (
 	<Trans>
 		Transmit the main source to an datarhei Core Ressource. More details about the settings can be found{' '}
-		<Link color="secondary" target="_blank" href="https://docs.datarhei.com/restreamer">
+		<Link color="secondary" target="_blank" href="https://github.com/glatzkopf94/vortex">
 			here
 		</Link>
 		.
@@ -28,11 +29,11 @@ const image_copyright = <Trans>Please contact the operator of the service and ch
 const author = {
 	creator: {
 		name: 'datarhei.com',
-		link: 'https://datarhei.com',
+		link: 'https://github.com/datarhei',
 	},
 	maintainer: {
 		name: 'datarhei.com',
-		link: 'https://datarhei.com',
+		link: 'https://github.com/datarhei',
 	},
 };
 const category = 'software';
@@ -203,10 +204,10 @@ function Service({ settings = {}, skills = {}, metadata = {}, streams = [], onCh
 					{!settings.v2_address && (
 						<Typography>
 							<strong>
-								<Trans>Restreamer instructions</Trans>:
+								<Trans>Vortex instructions</Trans>:
 							</strong>
 							<br />
-							<Trans>1. Switch to the interface of the target Restreamer.</Trans>
+							<Trans>1. Switch to the interface of the target Vortex.</Trans>
 							<br />
 							<Trans>2. Create a new channel and select RTMP or SRT server.</Trans>
 							<br />

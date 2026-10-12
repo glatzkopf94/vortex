@@ -1,0 +1,11 @@
+# Optional override. The host path must ALREADY be a mounted NAS filesystem.
+services:
+  restreamer:
+    environment:
+      NKL_TIMELAPSE_NAS: /mnt/nkl-timelapse
+    volumes:
+      - type: bind
+        source: ${NKL_NAS_HOST_PATH:?Set NKL_NAS_HOST_PATH to the mounted NAS directory}
+        target: /mnt/nkl-timelapse
+        bind:
+          create_host_path: false

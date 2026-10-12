@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -7,7 +8,7 @@ import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 
-import welcomeImage from '../assets/images/welcome.png';
+import welcomeImage from '../assets/images/vortex-background.jpg';
 import Paper from '../misc/Paper';
 import PaperThumb from '../misc/PaperThumb';
 
@@ -19,14 +20,14 @@ export default function Welcome() {
 		<Paper xs={12} md={6} className="PaperM">
 			<Grid container justifyContent="center" spacing={2}>
 				<Grid item xs={12}>
-					<PaperThumb image={welcomeImage} title="Welcome to Restreamer v2" height="200px" />
+					<PaperThumb image={welcomeImage} title="Welcome to Vortex" height="200px" />
 				</Grid>
 				<Grid item xs={12}></Grid>
 				<Grid item xs={12}>
 					<Typography align="center">
 						<Trans>
-							Welcome to Restreamer v2, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the{' '}
-							<Link color="secondary" target="_blank" href="https://docs.datarhei.com">
+							Welcome to Vortex, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the{' '}
+							<Link color="secondary" target="_blank" href="https://github.com/glatzkopf94/vortex">
 								docs
 							</Link>
 							.

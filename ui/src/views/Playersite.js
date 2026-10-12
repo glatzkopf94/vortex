@@ -1,6 +1,7 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useLingui } from '@lingui/react';
 import { Trans, t } from '@lingui/macro';
@@ -78,7 +79,8 @@ export default function Playersite({ restreamer = null }) {
 	const [$settings, setSettings] = React.useState({});
 	const [$channels, setChannels] = React.useState([]);
 	const [$templates, setTemplates] = React.useState([]);
-	const [$tab, setTab] = React.useState('general');
+	const [params,setParams]=useSearchParams();
+	const [$tab, setTab] = React.useState(['general','template','design','notes','code_injection'].includes(params.get('tab'))?params.get('tab'):'general');
 	const [$saving, setSaving] = React.useState(false);
 	const [$error, setError] = React.useState({
 		open: false,
@@ -246,6 +248,7 @@ export default function Playersite({ restreamer = null }) {
 
 	const handleChangeTab = (event, value) => {
 		setTab(value);
+		setParams({tab:value},{replace:true});
 	};
 
 	const handleAbort = () => {
@@ -287,7 +290,7 @@ export default function Playersite({ restreamer = null }) {
 						<TabPanel value={$tab} index="general">
 							<Grid container spacing={2}>
 								<Grid item xs={12}>
-									<PaperThumb image={playerSiteThumb} title="Playersite" />
+									<PaperThumb image={playerSiteThumb} title="Vortex Playerseite" fit="contain" />
 								</Grid>
 								<Grid item xs={12}>
 									<Typography variant="h1">
@@ -297,7 +300,7 @@ export default function Playersite({ restreamer = null }) {
 								<Grid item xs={12}>
 									<Typography variant="body1">
 										<Trans>
-											In addition to the player, the Restreamer offers a complete landingpage, which you can use to present your live
+											In addition to the player, the Vortex offers a complete landingpage, which you can use to present your live
 											stream easily and quickly.
 										</Trans>
 									</Typography>
@@ -402,7 +405,7 @@ export default function Playersite({ restreamer = null }) {
 								</Grid>
 								<Grid item xs={12}>
 									<Checkbox
-										label={<Trans>Support datarhei Restreamer</Trans>}
+										label={<Trans>Support datarhei Vortex</Trans>}
 										checked={$settings.support}
 										disabled={!$settings.playersite}
 										onChange={handleChange('support')}

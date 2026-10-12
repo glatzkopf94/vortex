@@ -191,7 +191,7 @@ func (d *Config) init() {
 	// Storage (Disk)
 	d.vars.Register(value.NewMustDir(&d.Storage.Disk.Dir, "./data", d.fs), "storage.disk.dir", "CORE_STORAGE_DISK_DIR", nil, "Directory on disk, exposed on /", false, false)
 	d.vars.Register(value.NewInt64(&d.Storage.Disk.Size, 0), "storage.disk.max_size_mbytes", "CORE_STORAGE_DISK_MAX_SIZE_MBYTES", []string{"CORE_STORAGE_DISK_MAXSIZEMBYTES"}, "Max. allowed megabytes for storage.disk.dir, 0 for unlimited", false, false)
-	d.vars.Register(value.NewBool(&d.Storage.Disk.Cache.Enable, true), "storage.disk.cache.enable", "CORE_STORAGE_DISK_CACHE_ENABLE", nil, "Enable cache for /", false, false)
+	d.vars.Register(value.NewBool(&d.Storage.Disk.Cache.Enable, false), "storage.disk.cache.enable", "CORE_STORAGE_DISK_CACHE_ENABLE", nil, "Enable cache for /", false, false)
 	d.vars.Register(value.NewUint64(&d.Storage.Disk.Cache.Size, 0), "storage.disk.cache.max_size_mbytes", "CORE_STORAGE_DISK_CACHE_MAX_SIZE_MBYTES", []string{"CORE_STORAGE_DISK_CACHE_MAXSIZEMBYTES"}, "Max. allowed cache size, 0 for unlimited", false, false)
 	d.vars.Register(value.NewInt64(&d.Storage.Disk.Cache.TTL, 300), "storage.disk.cache.ttl_seconds", "CORE_STORAGE_DISK_CACHE_TTL_SECONDS", []string{"CORE_STORAGE_DISK_CACHE_TTLSECONDS"}, "Seconds to keep files in cache", false, false)
 	d.vars.Register(value.NewUint64(&d.Storage.Disk.Cache.FileSize, 1), "storage.disk.cache.max_file_size_mbytes", "CORE_STORAGE_DISK_CACHE_MAX_FILE_SIZE_MBYTES", []string{"CORE_STORAGE_DISK_CACHE_MAXFILESIZEMBYTES"}, "Max. file size to put in cache", false, false)

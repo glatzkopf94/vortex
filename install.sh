@@ -38,6 +38,13 @@ docker compose version >/dev/null
 if [ ! -f .env ]; then
     migrated_env=""
     for candidate in \
+        ../restreamer-nistkastenlivestream-0.3.0-dev22/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev21/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev20/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev19/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev18/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev17/.env \
+        ../restreamer-nistkastenlivestream-0.3.0-dev16/.env \
         ../restreamer-nistkastenlivestream-0.3.0-dev15/.env \
         ../restreamer-nistkastenlivestream-0.3.0-dev14/.env \
         ../restreamer-nistkastenlivestream-0.3.0-dev13/.env \
@@ -116,7 +123,7 @@ replace_env_default() {
 }
 
 replace_env_default RESTREAMER_PROJECT_NAME restreamer-livechasing restreamer-nkl || true
-if replace_env_default RESTREAMER_CONTAINER_NAME restreamer-livechasing restreamer-nkl; then
+if replace_env_default RESTREAMER_CONTAINER_NAME restreamer-livechasing vortex; then
     legacy_container=true
 fi
 if replace_env_default RESTREAMER_CONFIG_VOLUME restreamer-livechasing-config restreamer-nkl-config; then
@@ -183,7 +190,7 @@ fi
 # Never replace an existing official datarhei container, regardless of its
 # name (for example restreamer-rpi on a Raspberry Pi).
 target_container="$(sed -n 's/^RESTREAMER_CONTAINER_NAME=//p' .env | tail -n 1)"
-target_container="${target_container:-restreamer-nkl}"
+target_container="${target_container:-vortex}"
 if docker container inspect "$target_container" >/dev/null 2>&1; then
     existing_image="$(docker inspect "$target_container" --format '{{.Config.Image}}')"
     case "$existing_image" in
@@ -263,7 +270,7 @@ install_update_agent() {
     systemctl stop nkl-restreamer-update.path
     systemctl enable --now nkl-restreamer-update.path
     systemctl is-active --quiet nkl-restreamer-update.path
-    printf '{"available":true,"protocol":1,"repository":"glatzkopf94/restreamer-nistkastenlivestream"}\n' > "$update_root/agent.json"
+    printf '{"available":true,"protocol":1,"repository":"glatzkopf94/vortex"}\n' > "$update_root/agent.json"
     chmod 0644 "$update_root/agent.json"
     echo "Sichere Aktualisierung aus dem NKL-Webinterface ist aktiviert."
 }

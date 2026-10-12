@@ -1,9 +1,11 @@
+// Modified 2026-10-10: bound pending segment accounting independently of DVR data.
 // Package session is a HLS session middleware for Gin
 package session
 
 import (
 	"bufio"
 	"bytes"
+	"container/list"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/datarhei/core/v16/net"
 	"github.com/datarhei/core/v16/session"
@@ -46,7 +49,8 @@ type hls struct {
 	ingressCollector session.Collector
 	reSessionID      *regexp.Regexp
 
-	rxsegments map[string]int64
+	rxsegments map[string]*list.Element
+	rxorder    list.List
 	lock       sync.Mutex
 }
 
@@ -72,7 +76,7 @@ func NewHLSWithConfig(config HLSConfig) echo.MiddlewareFunc {
 		egressCollector:  config.EgressCollector,
 		ingressCollector: config.IngressCollector,
 		reSessionID:      regexp.MustCompile(`^[` + regexp.QuoteMeta(shortuuid.DefaultAlphabet) + `]{22}$`),
-		rxsegments:       make(map[string]int64),
+		rxsegments:       make(map[string]*list.Element),
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -129,10 +133,12 @@ func (h *hls) handleIngress(c echo.Context, next echo.HandlerFunc) error {
 
 			if len(segments) != 0 {
 				h.lock.Lock()
+				h.expireSegments(time.Now())
 				for _, s := range segments {
-					if size, ok := h.rxsegments[s]; ok {
+					if elm, ok := h.rxsegments[s]; ok {
 						// Update ingress value
-						h.ingressCollector.Ingress(path, size)
+						h.ingressCollector.Ingress(path, elm.Value.(pendingSegment).size)
+						h.rxorder.Remove(elm)
 						delete(h.rxsegments, s)
 					}
 				}
@@ -152,7 +158,7 @@ func (h *hls) handleIngress(c echo.Context, next echo.HandlerFunc) error {
 
 			if r.size != 0 {
 				h.lock.Lock()
-				h.rxsegments[path] = r.size + headerSize(req.Header)
+				h.rememberSegment(path, r.size+headerSize(req.Header), time.Now())
 				h.lock.Unlock()
 			}
 		}()
@@ -472,4 +478,38 @@ func (g *sessionRewriter) rewriteHLS(sessionID string, requestURL *url.URL) {
 	}
 
 	g.buffer = buffer
+}
+
+const pendingSegmentLimit = 8192
+const pendingSegmentTTL = 10 * time.Minute
+
+type pendingSegment struct {
+	path string
+	size int64
+	at   time.Time
+}
+
+// Caller holds h.lock. These records contain accounting only, never media bytes.
+func (h *hls) expireSegments(now time.Time) {
+	for elm := h.rxorder.Front(); elm != nil; elm = h.rxorder.Front() {
+		v := elm.Value.(pendingSegment)
+		if now.Sub(v.at) < pendingSegmentTTL {
+			break
+		}
+		delete(h.rxsegments, v.path)
+		h.rxorder.Remove(elm)
+	}
+}
+func (h *hls) rememberSegment(path string, size int64, now time.Time) {
+	h.expireSegments(now)
+	if elm, ok := h.rxsegments[path]; ok {
+		h.rxorder.Remove(elm)
+		delete(h.rxsegments, path)
+	}
+	for len(h.rxsegments) >= pendingSegmentLimit {
+		elm := h.rxorder.Front()
+		delete(h.rxsegments, elm.Value.(pendingSegment).path)
+		h.rxorder.Remove(elm)
+	}
+	h.rxsegments[path] = h.rxorder.PushBack(pendingSegment{path: path, size: size, at: now})
 }

@@ -533,7 +533,8 @@ export default function RestreamerUI({ address = '' }) {
 					autoHideDuration={6000}
 					onClose={handleCloseSnack}
 				>
-					<Alert variant="filled" elevation={6} onClose={handleCloseSnack} severity={$snack.severity}>
+					<Alert variant="filled" elevation={6} onClose={handleCloseSnack} severity={$snack.severity}
+                        sx={{overflowWrap:'anywhere','&.MuiAlert-filledSuccess':{backgroundColor:'#1b5e20',color:'#fff'},'&.MuiAlert-filledError':{backgroundColor:'#8e2424',color:'#fff'},'& .MuiAlert-message, & .MuiAlert-icon':{color:'inherit'}}}>
 						{$snack.message}
 					</Alert>
 				</Snackbar>

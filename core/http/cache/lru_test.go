@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -171,4 +172,42 @@ func TestSize(t *testing.T) {
 
 	r = cache.IsSizeCacheable(129)
 	require.Equal(t, false, r)
+}
+
+// A DVR segment is never requested again after playback. TTL must release it
+// without a Get, and the expiry worker must stop once the cache is empty.
+func TestExpiresUnreadDVRSegments(t *testing.T) {
+	raw, err := NewLRUCache(LRUConfig{TTL: 20 * time.Millisecond})
+	require.NoError(t, err)
+	c := raw.(*lrucache)
+	defer c.Purge()
+	for i := 0; i < 200; i++ {
+		require.NoError(t, c.Put(fmt.Sprintf("segment-%d.ts", i), make([]byte, 16384), 16384))
+	}
+	require.Eventually(t, func() bool {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		return len(c.objects) == 0 && c.list.Len() == 0 && c.size == 0 && c.expiryTimer == nil
+	}, time.Second, time.Millisecond)
+}
+
+func TestExpiryAndPurgeReuse(t *testing.T) {
+	raw, _ := NewLRUCache(LRUConfig{TTL: 20 * time.Millisecond})
+	c := raw.(*lrucache)
+	defer c.Purge()
+	require.NoError(t, c.Put("replaced", "before", 6))
+	require.NoError(t, c.Put("replaced", "after", 5))
+	got, _, err := c.Get("replaced")
+	require.NoError(t, err)
+	require.Equal(t, "after", got)
+	c.Purge()
+	require.NoError(t, c.Put("new", "new", 3))
+	got, _, err = c.Get("new")
+	require.NoError(t, err)
+	require.Equal(t, "new", got)
+	require.Eventually(t, func() bool {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		return c.size == 0 && c.expiryTimer == nil && len(c.objects) == 0
+	}, time.Second, time.Millisecond)
 }

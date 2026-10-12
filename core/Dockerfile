@@ -1,3 +1,4 @@
+# Modified 2026-10-10: run memory-regression tests before building.
 ARG GOLANG_IMAGE=golang:1.27.1-alpine3.24
 ARG BUILD_IMAGE=alpine:3.24
 
@@ -15,6 +16,8 @@ RUN apk add \
 	make
 
 RUN cd /dist/core && \
+	go test ./http/cache ./http/middleware/cache ./io/fs && \
+	go test ./http -run TestTimelapse && \
 	go test ./restream -run TestShutdownDoesNotPurgePersistentFiles && \
 	go test ./restream/fs && \
 	go test ./ffmpeg/skills && \

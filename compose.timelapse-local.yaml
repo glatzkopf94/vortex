@@ -1,0 +1,25 @@
+# Entirely separate test instance; no production ports or volumes.
+name: nkl-timelapse-preview
+services:
+  restreamer:
+    image: nkl/restreamer:timelapse-local
+    container_name: vortex
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:10080:8080"
+      - "127.0.0.1:10181:8181"
+    environment:
+      CORE_STORAGE_DISK_CACHE_MAX_SIZE_MBYTES: "128"
+      NKL_TIMELAPSE_ENABLE: "true"
+      NKL_TIMELAPSE_ROOT: /core/timelapse
+      NKL_TIMELAPSE_QUOTA_BYTES: "21474836480"
+      NKL_TIMELAPSE_RESERVE_BYTES: "2147483648"
+      CORE_STORAGE_DISK_CACHE_TYPES_BLOCK: ".m3u8 .mpd .txt .html .js"
+    volumes:
+      - config:/core/config
+      - data:/core/data
+      - timelapse:/core/timelapse
+volumes:
+  config:
+  data:
+  timelapse:

@@ -1,4 +1,4 @@
-# Restreamer Nistkasten Livestream 0.3.0-dev22
+# Vortex 1.5 Beta / 0.3.0-dev23
 
 Inoffizieller Fork des datarhei Restreamers fuer Nistkasten-Livestreams,
 hochaufgeloeste HEVC-/H.265-Kameras, aktuelle FFmpeg-Komponenten, frei
@@ -7,8 +7,21 @@ FOSS GmbH verbunden und kein offizielles datarhei-Release.
 
 Quellrepository und Container-Image:
 
-- `https://github.com/glatzkopf94/restreamer-nistkastenlivestream`
+- `https://github.com/glatzkopf94/vortex`
 - `ghcr.io/glatzkopf94/restreamer-nistkastenlivestream`
+
+Das Release enthält den lokal erprobten Stand **Test 21** auf der veröffentlichten
+dev22-Basis. Alle Änderungen stehen im [Changelog](CHANGELOG.md).
+
+Neu in 1.5: Tages- und Saisonzeitraffer, private und öffentliche Vorschauen,
+MP4-Export, FTP/FTPS-Ablage, Speicheranzeige, Cache-/RAM-Korrekturen und Schutz
+der konfigurierten DVR-Haltezeit. Anleitung: [Zeitraffer](TIMELAPSE.md).
+
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev23`
+veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
+bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
+verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und
+Volumes bleiben erhalten.
 
 ## Wichtigste Erweiterungen
 
@@ -29,7 +42,7 @@ Quellrepository und Container-Image:
 - automatische 16:9-/4:3-Player-Geometrie ohne Formatwechsel beim Start
 - optional nur ein aktiver Player pro Browser sowie erneute Play-Bestaetigung
   nach 15 Minuten zur Begrenzung ausgehender HLS-Bandbreite
-- eigene NKL-Oberflaeche mit Weltraumhintergrund und Kennung `NKL 1.4 Beta`
+- eigene Vortex-Oberflaeche mit neuen Hintergrund- und Kopfgrafiken und Kennung `Vortex 1.5 Beta`
 - alle zwei Sekunden aktualisierte, kanalübergreifend deduplizierte
   Zuschauerzahl direkt neben CPU- und RAM-Auslastung
 - vorgebautes Multiarch-Image fuer AMD64 und ARM64 mit schneller Pull-Installation ueber GHCR
@@ -53,8 +66,8 @@ lokaler Build bleibt mit `./build-local.sh` moeglich.
 ## Installation
 
 ```bash
-unzip -o restreamer-nistkastenlivestream-0.3.0-dev22.zip
-cd restreamer-nistkastenlivestream-0.3.0-dev22
+unzip -o vortex-0.3.0-dev23.zip
+cd vortex-0.3.0-dev23
 chmod 0755 install.sh status.sh uninstall.sh tests/smoke-test.sh
 ./install.sh
 ```
@@ -78,7 +91,7 @@ Smoke-Test wird der alte Container entfernt. Bei einem Fehler startet der
 Installer den bisherigen Container wieder.
 
 Unter `System -> Allgemein` kann Restreamer manuell nach neuen Releases im
-Repository `glatzkopf94/restreamer-nistkastenlivestream` suchen. Die optionale
+Repository `glatzkopf94/vortex` suchen. Die optionale
 serverseitige Pruefung verwendet dasselbe Repository und sendet keine
 Nutzungsmetriken oder Zuschauerdaten. Ein Update aus der Oberflaeche laedt das
 Release-ZIP samt SHA-256-Pruefsumme und das dazugehoerige GHCR-Image, erstellt
@@ -378,11 +391,11 @@ mit der technischen Version startet Build, Tests, GHCR-Push und die Erstellung
 des kleinen Installations-ZIPs:
 
 ```bash
-git tag v0.3.0-dev22
-git push origin v0.3.0-dev22
+git tag v0.3.0-dev23
+git push origin v0.3.0-dev23
 ```
 
-Das Multiarch-Image erhaelt die Tags `0.3.0-dev22` und `1.4-beta`. Beide
+Das Multiarch-Image erhaelt die Tags `0.3.0-dev23` und `1.5-beta`. Beide
 enthalten `linux/amd64` und `linux/arm64`. Nach dem ersten Lauf
 muss das Paket auf GitHub unter `Packages -> Package settings -> Change
 visibility` einmalig auf `Public` gestellt werden, damit der Installer ohne
@@ -433,7 +446,7 @@ Details zu Fremdkomponenten und Lizenzen stehen in
 
 ## Status
 
-Version 0.3.0-dev22 / NKL 1.4 Beta ist eine Entwicklungsvorschau. Der
+Version 0.3.0-dev23 / Vortex 1.5 Beta ist eine Entwicklungsvorschau. Der
 offizielle Produktivcontainer bleibt unberuehrt. Vor einem breiten
 Produktiveinsatz werden ein mehrtaegiger Dauertest, Browserpruefungen und ein
 Wiederherstellungstest der Konfigurationssicherung empfohlen.

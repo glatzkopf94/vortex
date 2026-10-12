@@ -46,7 +46,7 @@ class PlayerUITest(unittest.TestCase):
             self.assertIn("document.createElement('div')", result)
             self.assertNotIn('<div id="lc-activation-hint"', result)
             self.assertNotIn("var oldPlayerCode = true;", result)
-            self.assertIn("video-js-skin.min.css?nkl=1.4-beta-dev21", result)
+            self.assertIn("video-js-skin.min.css?nkl=1.5-beta-dev23", result)
             self.assertEqual(custom.read_text(), "<html>Custom page</html>")
             self.assertEqual((data / "player/videojs/dist/video-js-skin.min.css").read_text(), "new skin")
             migration.migrate(data, ui)
@@ -103,14 +103,15 @@ class PlayerUITest(unittest.TestCase):
         self.assertIn("vjs-seek-to-live-control", minified)
         self.assertIn("vjs-at-live-edge", minified)
 
-    def test_non_dvr_shows_only_seek_to_live_control(self):
+    def test_non_dvr_shows_one_live_label(self):
         html = PLAYER.read_text(encoding="utf-8")
         css = SKIN.read_text(encoding="utf-8")
         minified = MINIFIED_SKIN.read_text(encoding="utf-8")
 
         self.assertIn("player.addClass('vjs-live-no-dvr')", html)
         self.assertIn(".vjs-public.vjs-live-no-dvr .vjs-live-control", css)
-        self.assertIn(".vjs-public.vjs-live-no-dvr .vjs-live-control {\n\tdisplay: none;", css)
+        self.assertIn(".vjs-public.vjs-live-no-dvr .vjs-live-control {display:flex", css)
+        self.assertIn(".vjs-public.vjs-live-no-dvr .vjs-seek-to-live-control {display:none!important}", css)
         self.assertEqual(css, minified)
         self.assertIn(".vjs-public .vjs-seek-to-live-control.vjs-at-live-edge::after", css)
 
@@ -219,11 +220,11 @@ class PlayerUITest(unittest.TestCase):
         package = (ROOT / "ui/package.json").read_text(encoding="utf-8")
         version = (ROOT / "ui/src/version.js").read_text(encoding="utf-8")
         global_theme = (ROOT / "ui/src/theme/global.js").read_text(encoding="utf-8")
-        background = ROOT / "ui/src/assets/images/background-restreamer.png"
+        background = ROOT / "ui/src/assets/images/vortex-background.jpg"
 
-        self.assertIn('"nklVersion": "1.4 Beta"', package)
-        self.assertIn("`NKL ${pkg.nklVersion || Version}`", version)
-        self.assertIn("background-restreamer.png", global_theme)
+        self.assertIn('"nklVersion": "1.5 Beta"', package)
+        self.assertIn("`Vortex ${pkg.nklVersion || Version}`", version)
+        self.assertIn("vortex-background.jpg", global_theme)
         self.assertTrue(background.is_file())
         self.assertGreater(background.stat().st_size, 100000)
 
@@ -235,7 +236,7 @@ class PlayerUITest(unittest.TestCase):
         installer = (ROOT / "install.sh").read_text(encoding="utf-8")
         agent = (ROOT / "scripts/nkl-update-agent.sh").read_text(encoding="utf-8")
 
-        repository = "glatzkopf94/restreamer-nistkastenlivestream"
+        repository = "glatzkopf94/vortex"
         self.assertIn(repository, version)
         self.assertIn("InstallLatestUpdate", restreamer)
         self.assertIn("install-latest-nkl-release", restreamer)
@@ -249,7 +250,7 @@ class PlayerUITest(unittest.TestCase):
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
         self.assertIn("restreamer-nkl:", compose)
-        self.assertIn("RESTREAMER_CONTAINER_NAME=restreamer-nkl", env_example)
+        self.assertIn("RESTREAMER_CONTAINER_NAME=vortex", env_example)
         self.assertIn("RESTREAMER_CONFIG_VOLUME=restreamer-nkl-config", env_example)
         self.assertIn("RESTREAMER_DATA_VOLUME=restreamer-nkl-data", env_example)
 

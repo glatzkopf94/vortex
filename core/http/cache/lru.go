@@ -20,16 +20,18 @@ type LRUConfig struct {
 }
 
 type lrucache struct {
-	ttl             time.Duration
-	maxSize         uint64
-	maxFileSize     uint64
-	allowExtensions []string
-	blockExtensions []string
-	objects         map[string]*list.Element
-	list            *list.List
-	size            uint64
-	lock            sync.Mutex
-	logger          log.Logger
+	ttl              time.Duration
+	maxSize          uint64
+	maxFileSize      uint64
+	allowExtensions  []string
+	blockExtensions  []string
+	objects          map[string]*list.Element
+	list             *list.List
+	size             uint64
+	lock             sync.Mutex
+	logger           log.Logger
+	expiryTimer      *time.Timer
+	expiryGeneration uint64
 }
 
 type value struct {
@@ -163,7 +165,40 @@ func (c *lrucache) Put(key string, o interface{}, size uint64) error {
 		}
 	}
 
+	c.scheduleExpiryLocked()
 	return nil
+}
+
+// Expire unread objects too: DVR segment names are usually requested only once.
+// The timer exists only while the cache contains objects; Purge invalidates callbacks.
+func (c *lrucache) scheduleExpiryLocked() {
+	if c.expiryTimer != nil || len(c.objects) == 0 {
+		return
+	}
+	delay := c.ttl
+	if delay > 30*time.Second {
+		delay = 30 * time.Second
+	}
+	if delay < time.Millisecond {
+		delay = time.Millisecond
+	}
+	generation := c.expiryGeneration
+	c.expiryTimer = time.AfterFunc(delay, func() {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if generation != c.expiryGeneration {
+			return
+		}
+		c.expiryTimer = nil
+		now := time.Now()
+		for key, elm := range c.objects {
+			if !elm.Value.(*value).expireAt.After(now) {
+				c.removeElement(elm)
+				delete(c.objects, key)
+			}
+		}
+		c.scheduleExpiryLocked()
+	})
 }
 
 func (c *lrucache) Delete(key string) error {
@@ -191,6 +226,11 @@ func (c *lrucache) Purge() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	c.expiryGeneration++
+	if c.expiryTimer != nil {
+		c.expiryTimer.Stop()
+		c.expiryTimer = nil
+	}
 	c.list.Init()
 	c.objects = make(map[string]*list.Element)
 

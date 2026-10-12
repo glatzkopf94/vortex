@@ -4,10 +4,7 @@ import Grid from '@mui/material/Grid';
 
 import videojs from 'video.js';
 import './videojs-overlay.es.js';
-import 'video.js/dist/video-js.min.css';
-import './video-js-skin-internal.min.css';
-import './video-js-skin-public.min.css';
-import './videojs-overlay.css';
+import './styles';
 
 export default function VideoJS({ type = 'videojs-internal', options = {}, onReady = null }) {
 	const videoRef = React.useRef(null);
@@ -32,7 +29,8 @@ export default function VideoJS({ type = 'videojs-internal', options = {}, onRea
 				onReady && onReady(player);
 			}));
 
-			// add internal/public skin style
+			player.addClass('vjs-public');
+			// Compact previews use the same skin, with fewer controls.
 			if (type === 'videojs-public') {
 				player.addClass('vjs-public');
 			} else {

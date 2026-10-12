@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -597,7 +598,7 @@ function AdvancedSettings({ settings = {}, onChange = function (settings) {} }) 
 									</Select>
 									<Typography variant="caption" display="block">
 										{settings.rtsp.stability === 'standard' && (
-											<Trans>Original Restreamer buffering and permissive decoder error handling.</Trans>
+											<Trans>Original Vortex buffering and permissive decoder error handling.</Trans>
 										)}
 										{settings.rtsp.stability === 'stable' && (
 											<Trans>TCP, a larger input queue and buffer, corrupt packet rejection and careful decoder error handling.</Trans>

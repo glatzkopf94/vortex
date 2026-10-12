@@ -541,6 +541,13 @@ func (s *server) setRoutes() {
 
 	v3.Use(gzipMiddleware)
 
+	v3.GET("/timelapse/*", timelapseProxy(false))
+	v3.HEAD("/timelapse/*", timelapseProxy(false))
+	if !s.readOnly {
+		v3.POST("/timelapse/action", timelapseProxy(false))
+	}
+	s.router.GET("/timelapse/*", timelapseProxy(true))
+	s.router.HEAD("/timelapse/*", timelapseProxy(true))
 	s.setRoutesV3(v3)
 }
 

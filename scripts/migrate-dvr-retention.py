@@ -97,6 +97,23 @@ def migrate_data(database):
             output["address"] = head + separator + tail
         else:
             continue
+        # The old Core limits are independent of the FFmpeg playlist. In
+        # particular, a stale 5406-file limit deletes the fourth DVR hour.
+        # Preserve delete-channel cleanup, but let FFmpeg and the manager
+        # expire DVR media without deleting playlist references.
+        channel = process_id[len(INGEST_PREFIX):]
+        for saved_output in outputs:
+            if not isinstance(saved_output, dict):
+                continue
+            for rule in saved_output.get("cleanup", []) or []:
+                if not isinstance(rule, dict):
+                    continue
+                pattern = rule.get("pattern", "")
+                if isinstance(pattern, str) and re.match(
+                    r"^(?:diskfs|disk|memfs|mem):/" + re.escape(channel) + r"(?:[./_*]|$)", pattern
+                ):
+                    rule["max_files"] = 0
+                    rule["max_file_age_seconds"] = 0
         dvr["hours"] = hours
         hls["listSize"] = count
         hls["storage"] = "diskfs"

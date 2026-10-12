@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { styled } from '@mui/material/styles';
@@ -26,7 +27,7 @@ import WebIcon from '@mui/icons-material/Web';
 
 import * as Storage from './utils/storage';
 import * as Version from './version';
-import welcomeImage from './assets/images/welcome.png';
+import welcomeImage from './assets/images/vortex-background.jpg';
 import LanguageSelect from './misc/LanguageSelect';
 import Logo from './misc/Logo/rsLogo';
 import ModalContent from './misc/ModalContent';
@@ -165,24 +166,24 @@ function AboutModal({ open = false, onClose = () => {} }) {
 
 	return (
 		<Modal open={open} onClose={onClose} className="modal">
-			<ModalContent title="About NKL Restreamer" onClose={onClose} className={classes.modalPaper}>
+			<ModalContent title="Über Vortex" onClose={onClose} className={classes.modalPaper}>
 				<Grid container spacing={1}>
 					<Grid item xs={12} className={classes.aboutImage}>
-						<PaperThumb image={welcomeImage} title="Welcome to Restreamer v2" height="200px" />
+						<PaperThumb image={welcomeImage} title="Vortex" height="200px" />
 					</Grid>
 					<Grid item xs={12}>
 						<Typography variant="body1">
-							NKL Restreamer is an unofficial fork for Nistkasten Livestream based on the open source datarhei Restreamer and{' '}
+							Vortex is an unofficial fork for Nistkasten Livestream based on the open source datarhei Restreamer and{' '}
 							<Link color="secondary" href="https://github.com/datarhei/core" target="_blank">
 								datarhei Core
 							</Link>{' '}
-							which can be operated separately.
+							Vortex is independently maintained and is not affiliated with or endorsed by datarhei / FOSS GmbH. Please report Vortex issues to our GitHub repository.
 						</Typography>
 					</Grid>
-					<Grid item xs={12}></Grid>
+					<Grid item xs={12}><Typography>FFmpeg und weitere Komponenten behalten ihre eigenen Lizenzen.</Typography><Link href="./licenses/NOTICE.txt" target="_blank">Urheber- und Änderungshinweise</Link>{' · '}<Link href="./licenses/THIRD_PARTY_NOTICES.txt" target="_blank">Drittanbieter-Lizenzen</Link></Grid>
 					<Grid item xs={12}>
 						<Typography>
-							<strong>Release</strong>: {Version.UI}
+							<strong>Release</strong>: Vortex - dev-23 1.5 Beta
 						</Typography>
 						<Typography>
 							<strong>Repo</strong>:{' '}
@@ -191,21 +192,16 @@ function AboutModal({ open = false, onClose = () => {} }) {
 							</Link>
 						</Typography>
 						<Typography>
-							<strong>Licence</strong>:{' '}
-							<Link color="secondary" target="_blank" href={`${Version.Repository}/blob/main/LICENSE`}>
+							<strong>Licence (UI/Core)</strong>:{' '}
+							<Link color="secondary" target="_blank" href="./licenses/LICENSE.txt">
 								Apache License 2.0
 							</Link>
 						</Typography>
-						<Typography>
-							<strong>Donation</strong>:{' '}
-							<Link color="secondary" target="_blank" href="https://patreon.com/datarhei/">
-								patreon.com/datarhei
-							</Link>
-						</Typography>
+
 						<Typography>
 							<strong>Website</strong>:{' '}
-							<Link color="secondary" target="_blank" href="https://datarhei.com">
-								datarhei.com
+							<Link color="secondary" target="_blank" href="https://github.com/glatzkopf94/vortex">
+								GitHub · Vortex
 							</Link>
 						</Typography>
 					</Grid>
@@ -255,11 +251,11 @@ function HeaderMenu({
 				<StyledMenu anchorEl={$anchorEl} open={$anchorEl !== null} onClose={handleMenuClose} onClick={handleMenuClose} disableScrollLock>
 					{hasService === true && (
 						<React.Fragment>
-							<MenuItem component="a" href="https://service.datarhei.com" target="blank">
+							<MenuItem component="a" href="https://github.com/glatzkopf94/vortex/issues" target="blank">
 								<ListItemIcon>
 									<LayersIcon fontSize="small" />
 								</ListItemIcon>
-								<Trans>Service</Trans>
+								Vortex · GitHub
 							</MenuItem>
 							<Divider />
 						</React.Fragment>
@@ -372,7 +368,7 @@ export default function Header({
 				<Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0}>
 					<Stack direction="row" alignItems="center" spacing={0} className="headerLeft">
 						<Logo className="fabIcon" />
-						<Typography className="headerTitle">Restreamer</Typography>
+						<Typography className="headerTitle">Vortex</Typography>
 					</Stack>
 					<Stack className="headerRight" direction="row" alignItems="center" spacing={0}>
 						<HeaderMenu

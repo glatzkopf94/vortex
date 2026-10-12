@@ -1,10 +1,11 @@
+# Modified 2026-10-10: Vortex product naming.
 msgid ""
 msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: POEditor.com\n"
-"Project-Id-Version: Restreamer\n"
+"Project-Id-Version: Vortex\n"
 "Language: ko\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
@@ -31,8 +32,8 @@ msgid "<0>Show probe details</0>"
 msgstr "<0>확인 결과 보기</0>"
 
 #: src/views/Publication/Services/Core.js:209
-msgid "1. Switch to the interface of the target Restreamer."
-msgstr "1. 대상 Restreamer의 인터페이스를 엽니다."
+msgid "1. Switch to the interface of the target Vortex."
+msgstr "1. 대상 Vortex의 인터페이스를 엽니다."
 
 #: src/views/Publication/Services/Core.js:211
 msgid "2. Create a new channel and select RTMP or SRT server."
@@ -612,12 +613,12 @@ msgid "Connecting ..."
 msgstr "연결 중..."
 
 #: src/views/Initializing.js:21
-msgid "Connecting to Restreamer Core ..."
-msgstr "Restreamer Core에 연결 중 ..."
+msgid "Connecting to Vortex Core ..."
+msgstr "Vortex Core에 연결 중 ..."
 
 #: src/views/Invalid.js:36
-msgid "Connecting to Restreamer Core failed probably because of mixed content."
-msgstr "복합적인 문제로 Restreamer Core에 연결하지 못했습니다."
+msgid "Connecting to Vortex Core failed probably because of mixed content."
+msgstr "복합적인 문제로 Vortex Core에 연결하지 못했습니다."
 
 #: src/misc/coders/settings/Video.js:314
 msgid "Constant frame rate (CFR)"
@@ -1437,8 +1438,8 @@ msgid "Horizontal Flip"
 msgstr "좌/우 뒤집기"
 
 #: src/views/Login.js:319
-msgid "Hosted Restreamer interface"
-msgstr "Restreamer 인터페이스 제공"
+msgid "Hosted Vortex interface"
+msgstr "Vortex 인터페이스 제공"
 
 #: src/views/Edit/Sources/Network.js:666
 msgid "HTTP and HTTPS"
@@ -1461,12 +1462,12 @@ msgid "Human readable name on the service."
 msgstr "사용자에게 표시할 서비스 이름을 입력해주세요."
 
 #: src/views/Settings.js:2376
-msgid "If you changed the ports, it might be that Restreamer Core restarted already, but it is now available on a different port."
-msgstr "포트를 변경한 경우, 이미 Restreamer 코어를 재시작 하였더라도, 다른 포트에서 사용할 수 있습니다."
+msgid "If you changed the ports, it might be that Vortex Core restarted already, but it is now available on a different port."
+msgstr "포트를 변경한 경우, 이미 Vortex 코어를 재시작 하였더라도, 다른 포트에서 사용할 수 있습니다."
 
 #: src/views/Settings.js:2370
-msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Restreamer Core is reachable via port 80 from the internet. Please check the console log of Restreamer Core."
-msgstr "Let's Encrypt의 TLS 접속을 활성하려면 인증을 진행하기까지 시간이 소요됩니다. 네트워크의 80포트로 Restreamer Core에 접근할 수 있게 하세요. Restreamer Core의 콘솔 기록을 검토해주세요."
+msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Vortex Core is reachable via port 80 from the internet. Please check the console log of Vortex Core."
+msgstr "Let's Encrypt의 TLS 접속을 활성하려면 인증을 진행하기까지 시간이 소요됩니다. 네트워크의 80포트로 Vortex Core에 접근할 수 있게 하세요. Vortex Core의 콘솔 기록을 검토해주세요."
 
 #: src/views/Publication/Player.js:360
 msgid "iframe code"
@@ -1485,8 +1486,8 @@ msgid "Imprint"
 msgstr "각인"
 
 #: src/views/Playersite.js:285
-msgid "In addition to the player, the Restreamer offers a complete landingpage, which you can use to present your live stream easily and quickly."
-msgstr "재생기에 더하여, Restreamer는 현재 라이브 스트림을 쉽고 빠르게 확인할 수 있는 페이지를 제공합니다."
+msgid "In addition to the player, the Vortex offers a complete landingpage, which you can use to present your live stream easily and quickly."
+msgstr "재생기에 더하여, Vortex는 현재 라이브 스트림을 쉽고 빠르게 확인할 수 있는 페이지를 제공합니다."
 
 #: src/views/Edit/Profile.js:538
 #: src/views/Edit/Profile.js:701
@@ -2135,7 +2136,7 @@ msgid "Optional link"
 msgstr ""
 
 #: src/views/Edit/Sources/Network.js:600
-msgid "Original Restreamer buffering and permissive decoder error handling."
+msgid "Original Vortex buffering and permissive decoder error handling."
 msgstr ""
 
 #: src/misc/coders/Encoders/video/h264_v4l2m2m.js:196
@@ -2578,12 +2579,12 @@ msgid "Reconnecting in {0}s"
 msgstr "{0}초 후 재연결"
 
 #: src/views/Settings.js:2367
-msgid "Reconnecting to Restreamer Core failed for the last {RETRIES} seconds."
-msgstr "{RETRIES} 동안 Restreamer Core 접속에 실패하였습니다."
+msgid "Reconnecting to Vortex Core failed for the last {RETRIES} seconds."
+msgstr "{RETRIES} 동안 Vortex Core 접속에 실패하였습니다."
 
 #: src/views/Password.js:173
-msgid "Reconnecting to Restreamer Core failed."
-msgstr "Restreamer Core 접속에 실패했습니다."
+msgid "Reconnecting to Vortex Core failed."
+msgstr "Vortex Core 접속에 실패했습니다."
 
 #: src/views/Edit/Sources/ALSA.js:131
 #: src/views/Edit/Sources/AVFoundation.js:190
@@ -2680,20 +2681,20 @@ msgstr "다시 시작"
 
 #: src/views/Password.js:166
 #: src/views/Settings.js:2360
-msgid "Restarting Restreamer Core ..."
-msgstr "Restreamer Core를 다시 시작합니다 ..."
+msgid "Restarting Vortex Core ..."
+msgstr "Vortex Core를 다시 시작합니다 ..."
 
 #: src/views/Settings.js:1174
 msgid "Restarting the application failed."
 msgstr "애플리케이션을 다시 시작하는데 실패했습니다."
 
 #: src/views/Publication/Services/Core.js:206
-msgid "Restreamer instructions"
-msgstr "Restreamer 사용법"
+msgid "Vortex instructions"
+msgstr "Vortex 사용법"
 
 #: src/views/Settings.js:1395
-msgid "Restreamer Service"
-msgstr "Restreamer 서비스"
+msgid "Vortex Service"
+msgstr "Vortex 서비스"
 
 #: src/views/Main/index.js:287
 msgid "Retrieving stream data ..."
@@ -2887,8 +2888,8 @@ msgid "Select video source:"
 msgstr "비디오 원본 선택:"
 
 #: src/views/Edit/Wizard/Source.js:19
-msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Restreamer)."
-msgstr "스트림을 <0>네트워크 소스</0>(네트워크 카메라 등) 혹은 <1>내부 RTMP 서버</1>(Restreamer로 전달된 OBS 스트림 등)에서 받아올지 선택합니다."
+msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Vortex)."
+msgstr "스트림을 <0>네트워크 소스</0>(네트워크 카메라 등) 혹은 <1>내부 RTMP 서버</1>(Vortex로 전달된 OBS 스트림 등)에서 받아올지 선택합니다."
 
 #: src/misc/EncodingSelect.js:215
 msgid "Select your encoding setting:"
@@ -3232,8 +3233,8 @@ msgid "Strict"
 msgstr ""
 
 #: src/views/Playersite.js:391
-msgid "Support datarhei Restreamer"
-msgstr "datarhei Restreamer 지지"
+msgid "Support datarhei Vortex"
+msgstr "datarhei Vortex 지지"
 
 #: src/views/Edit/Sources/Network.js:958
 #: src/views/Edit/Wizard/Sources/Network.js:116
@@ -3409,8 +3410,8 @@ msgid "The player uses the detected format before playback starts, avoiding blac
 msgstr ""
 
 #: src/views/Settings.js:1476
-msgid "The public reachable domain name of the host this Restreamer is running on. Separate multiple domain names by a comma."
-msgstr "현재 Restreamer에 접근할 수 있는 도메인 주소입니다. 여러 도메인은 쉼표로 구분해주세요."
+msgid "The public reachable domain name of the host this Vortex is running on. Separate multiple domain names by a comma."
+msgstr "현재 Vortex에 접근할 수 있는 도메인 주소입니다. 여러 도메인은 쉼표로 구분해주세요."
 
 #: src/views/Publication/Edit.js:317
 msgid "The publication service \"{0}\" could not be deleted"
@@ -3506,7 +3507,7 @@ msgid "There was a problem storing the settings. Settings not saved."
 msgstr "설정을 저장하는데 문제가 발생했습니다. 설정을 저장하지 못했습니다."
 
 #: src/views/Invalid.js:32
-msgid "There was an error connecting to Restreamer Core at {address}."
+msgid "There was an error connecting to Vortex Core at {address}."
 msgstr ""
 
 #: src/views/Edit/Sources/AudioLoop.js:129
@@ -3538,8 +3539,8 @@ msgid "This is a dummy service that explains to you the concepts of service."
 msgstr "이 서비스는 개념을 설명하는 모의 서비스입니다."
 
 #: src/views/Password.js:176
-msgid "This is not necessarily an error. However, it may take a bit longer for Restreamer Core to restart.."
-msgstr "오류가 발생한 것은 아닙니다. 다만 Restreamer Core가 다시 시작하는데 시간이 좀 걸리겠습니다.."
+msgid "This is not necessarily an error. However, it may take a bit longer for Vortex Core to restart.."
+msgstr "오류가 발생한 것은 아닙니다. 다만 Vortex Core가 다시 시작하는데 시간이 좀 걸리겠습니다.."
 
 #: src/views/Publication/Services/Dummy.js:31
 msgid "This is to mention the copyright regulations for the target of this service."
@@ -3883,8 +3884,8 @@ msgid "Usage"
 msgstr ""
 
 #: src/views/Login.js:343
-msgid "Use Auth0 for your running Restreamer Core. More <0>details</0>."
-msgstr "Restreamer Core에 Auto0을 적용합니다. <0>자세한 내용</0>"
+msgid "Use Auth0 for your running Vortex Core. More <0>details</0>."
+msgstr "Vortex Core에 Auto0을 적용합니다. <0>자세한 내용</0>"
 
 #: src/misc/filters/video/TextOverlay.js:291
 #~ msgid "Use source.field and optional number formatting in double braces. Missing values are displayed as --."
@@ -4027,8 +4028,8 @@ msgid "Webcam name and weather"
 msgstr ""
 
 #: src/views/Welcome.js:27
-msgid "Welcome to Restreamer v2, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
-msgstr "빠르고 쉽게 영상을 송출하는 해결책인 Restreamer v2에 오신 것을 환영합니다. 개인이나 상업적인 용도로 자유롭게 사용할 수 있습니다. 자세한 도움말은 <0>문서</0>를 참고해주세요."
+msgid "Welcome to Vortex, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
+msgstr "빠르고 쉽게 영상을 송출하는 해결책인 Vortex에 오신 것을 환영합니다. 개인이나 상업적인 용도로 자유롭게 사용할 수 있습니다. 자세한 도움말은 <0>문서</0>를 참고해주세요."
 
 #: src/misc/coders/Encoders/video/av1_librav1e.js:105
 msgid "What speed preset to use."

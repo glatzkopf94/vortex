@@ -1,205 +1,206 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import { i18n } from '@lingui/core';
 
 const topics = {
 	'edit-general': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/edit-livestream/general',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/streameinstellungen/allgemeine-streameinstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'edit-control': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/edit-livestream/processing-and-control',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/streameinstellungen/verarbeitung-und-steuerung',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'edit-meta': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/edit-livestream/meta-information',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/streameinstellungen/metainformationen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'edit-license': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/edit-livestream/license',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/streameinstellungen/lizenz',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	login: {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/login',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/dashboard',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	main: {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/main-screen',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/hauptbildschirm',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-embed': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-colors': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-logo': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-statistic': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-playback': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'player-poster': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/video-player-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/videoplayer-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'playersite-general': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publication-website/general-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-webseite/allgemeine-einstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'playersite-template': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publication-website/template',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-webseite/template',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'playersite-design': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publication-website/design',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-webseite/design',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'playersite-notes': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publication-website/notes',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-webseite/notizen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'playersite-code_injection': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publication-website/code-injection',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-webseite/code-injection',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'process-details': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/process-details',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/prozess-report',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'process-report': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/process-report',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/prozess-details',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	publication: {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publications',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-services',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'publication-add': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publications',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-services',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'publication-general': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publications',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-services',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'publication-process': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publications',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-services',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'publication-encoding': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/publications',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/publication-services',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-general': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/general-system-settings',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/allgemeine-systemeinstellungen',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-update-link': {
-		en: 'https://github.com/glatzkopf94/restreamer-nistkastenlivestream/releases',
-		de: 'https://github.com/glatzkopf94/restreamer-nistkastenlivestream/releases',
+		en: 'https://github.com/glatzkopf94/vortex/releases',
+		de: 'https://github.com/glatzkopf94/vortex/releases',
 	},
 	'settings-service': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/service',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/service',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-network': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/network',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/netzwerk',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-auth': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/authorization',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/autorisierung',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-playback': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/playback',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/wiedergabe',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-storage': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/disk-space',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/speicherplatz',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-rtmp': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/rtmp',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/rtmp',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-srt': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/srt',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/srt',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'settings-logging': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/system-settings/logging',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/restreamer-einstellungen/protokollierung-and-fehlersuche',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-video-setup': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-video-settings': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-video-result': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-audio-settings': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-audio-result': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-license': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-error': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'wizard-abort': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/manual/wizard',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/user-guides/assistent',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-h264_omx': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#h264_omx',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#h264_omx',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-h264_v4l2m2m': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#h264_v4l2m2m',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#h264_v4l2m2m',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-h264_nvenc': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#h264_nvenc',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#h264_nvenc',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-h264_vaapi': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#h264_vaapi',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#h264_vaapi',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-h264_videotoolbox': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#h264_videotoolbox',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#h264_videotoolbox',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-libx264': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#libx264',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#libx264',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-libx265': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#libx265',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#libx265',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 	'encoder-libvpx-vp9': {
-		en: 'https://docs.datarhei.com/restreamer/knowledge-base/troubleshooting/encoding-compatibility-list#libvpx-vp9',
-		de: 'https://docs.datarhei.com/restreamer/v/de/wissensdatenbank/fehlersuche/kompatibilitaetsliste-fuer-encoder#libvpx-vp9',
+		en: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
+		de: 'https://github.com/glatzkopf94/vortex/blob/main/README.md',
 	},
 };
 
@@ -207,7 +208,7 @@ function getTopicURL(topic, locale) {
 	if (!(topic in topics)) {
 		console.warn(`help topic "${topic}" not found`);
 		// If topic doesn't exist, return default URL
-		return 'https://docs.datarhei.com/restreamer';
+		return 'https://github.com/glatzkopf94/vortex/blob/main/README.md';
 	}
 
 	if (!(locale in topics[topic])) {

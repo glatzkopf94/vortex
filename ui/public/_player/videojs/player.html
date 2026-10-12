@@ -412,6 +412,7 @@
 			};
 
 			var deactivatePublicStream = function (reason) {
+				if (window.nklTimelapseClose) window.nklTimelapseClose(false);
 				cancelSourceRetry();
 				sourceRetryCount = 0;
 				if (playbackGateReason === 'session' && reason !== 'session')
@@ -555,7 +556,7 @@
 			});
 			player.on('error', function () {
 				var error = player.error();
-				if (!error || [2, 4].indexOf(error.code) === -1 ||
+				if (window.nklTimelapseClose || !error || [2, 4].indexOf(error.code) === -1 ||
 					!publicStreamActivated || playbackGateReason ||
 					sourceRetryTimer !== null || sourceRetryCount >= 12) return;
 				sourceRetryCount++;
@@ -885,6 +886,39 @@
 				});
 			}
 
+
+			// Local timelapse preview: zero extra requests until this button is clicked.
+			player.ready(function () {
+				if (!player.controlBar || !player.controlBar.el) return;
+				var button = document.createElement('button');
+				button.type = 'button';
+				button.className = 'vjs-control nkl-timelapse-button';
+				button.innerHTML = '<span>Zeitraffer</span>';
+				button.setAttribute('aria-label', 'Zeitraffer öffnen');
+				button.style.cssText = 'margin-left:auto;width:auto;min-width:6em;font-weight:700;padding:0 8px;';
+				var style = document.createElement('style');
+				style.textContent = '.nkl-timelapse-button>span{position:relative;z-index:1;color:#ffeb3b}.nkl-timelapse-button:after{background:#146b32;content:"";position:absolute;inset:10px 2px;border:1px solid rgba(255,255,255,.55);border-radius:4px;pointer-events:none}.nkl-timelapse-button:focus-visible{outline:2px solid white}';
+				document.head.appendChild(style);
+				var bar = player.controlBar.el();
+				var fullscreen = bar.querySelector('.vjs-fullscreen-control');
+				bar.insertBefore(button, fullscreen || null);
+				button.onclick = function () {
+					var open = function () {
+						window.nklOpenTimelapse({player:player, button:button, channel:playerConfig.channelid,
+							onOpen:cancelSourceRetry,onPlay:function(){publicStreamActivated=true;claimPublicStream();startPlaybackTimer();},
+							onPause:function(){stopPlaybackTimer(true);}});
+					};
+					if (window.nklOpenTimelapse) { open(); return; }
+					button.disabled = true;
+					var css = document.createElement('link'); css.rel='stylesheet'; css.href='timelapse/player.css';
+					document.head.appendChild(css);
+					var script = document.createElement('script'); script.src='timelapse/player.js';
+					script.onload=function(){button.disabled=false;open();};
+					script.onerror=function(){button.disabled=false;button.title='Zeitrafferdienst nicht erreichbar';script.remove();css.remove();};
+					document.head.appendChild(script);
+				};
+				player.on('dispose', function(){if(window.nklTimelapseClose)window.nklTimelapseClose(false);});
+			});
 			player.ready(function () {
 				if (autoplay === true) {
 					// https://videojs.com/blog/autoplay-best-practices-with-video-js/

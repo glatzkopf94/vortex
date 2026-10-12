@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { Trans } from '@lingui/macro';
@@ -58,7 +59,7 @@ export default function Video({
 							<Typography textAlign="center">
 								<Trans>
 									The source doesn't provide any compatible video streams. Please check the{' '}
-									<Link color="secondary" target="_blank" href="https://github.com/datarhei/restreamer">
+									<Link color="secondary" target="_blank" href="https://github.com/glatzkopf94/vortex">
 										requirements
 									</Link>
 									.

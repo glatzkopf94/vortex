@@ -1,24 +1,8 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
-
-import makeStyles from '@mui/styles/makeStyles';
-
-import company_logo from './images/rs-logo.svg';
-
-const useStyles = makeStyles((theme) => ({
-	Logo: {
-		height: 95,
-	},
-}));
-
-export default function Logo(props) {
-	const classes = useStyles();
-
-	let link = 'https://github.com/datarhei/restreamer';
-
-	// eslint-disable-next-line no-useless-escape
-	return (
-		<a href={link} className={classes.Logo} target="_blank" rel="noopener noreferrer">
-			<img src={company_logo} alt="datarhei logo" />
-		</a>
-	);
+import logo from './images/vortex.png';
+export default function Logo({className}) {
+ return <a href="https://github.com/glatzkopf94/vortex" className={className} target="_blank" rel="noopener noreferrer" aria-label="Vortex" style={{display:'inline-flex',alignItems:'center',flexShrink:0}}>
+  <img src={logo} alt="Vortex" style={{height:80,width:80,objectFit:'contain',display:'block',maxWidth:'100%'}} />
+ </a>;
 }

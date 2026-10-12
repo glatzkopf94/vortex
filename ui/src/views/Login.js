@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { Trans } from '@lingui/macro';
@@ -316,7 +317,7 @@ export default function Login({ address = '', auths = [], hasService = false, on
 										<Trans>Social-login (OAuth2, 2FA)</Trans>
 									</Typography>
 									<Typography>
-										<Trans>Hosted Restreamer interface</Trans>
+										<Trans>Hosted Vortex interface</Trans>
 									</Typography>
 									<Typography>
 										<Trans>Advanced monitoring</Trans>
@@ -328,7 +329,7 @@ export default function Login({ address = '', auths = [], hasService = false, on
 							</Grid>
 						</Grid>
 						<Grid item xs={12}>
-							<Button variant="service" color="primary" fullWidth size="large" href="https://service.datarhei.com" target="blank">
+							<Button variant="service" color="primary" fullWidth size="large" href="https://github.com/glatzkopf94/vortex" target="blank">
 								<Trans>Sign up (free)</Trans>
 							</Button>
 						</Grid>
@@ -341,8 +342,8 @@ export default function Login({ address = '', auths = [], hasService = false, on
 								<Grid item xs={12} align="center">
 									<Typography>
 										<Trans>
-											Use Auth0 for your running Restreamer Core. More{' '}
-											<Link color="secondary" target="_blank" href="https://github.com/datarhei">
+											Use Auth0 for your running Vortex Core. More{' '}
+											<Link color="secondary" target="_blank" href="https://github.com/glatzkopf94/vortex">
 												details
 											</Link>
 											.

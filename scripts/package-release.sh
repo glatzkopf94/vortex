@@ -35,6 +35,7 @@ for file in \
     RELEASE_INSTALL.md \
     CHANGELOG.md \
     RELEASE_NOTES.md \
+    TIMELAPSE.md \
     TESTING.md \
     LICENSE \
     NOTICE \
@@ -59,3 +60,11 @@ rm -f "$archive" "$archive.sha256"
 
 echo "$archive"
 echo "$archive.sha256"
+
+# Friendly Vortex download plus unchanged legacy package for dev22 UI updates.
+vortex_name="vortex-${RELEASE_VERSION}"
+rm -rf "$dist_dir/$vortex_name"
+cp -a "$stage_dir" "$dist_dir/$vortex_name"
+rm -f "$dist_dir/$vortex_name.zip" "$dist_dir/$vortex_name.zip.sha256"
+(cd "$dist_dir" && zip -q -r "$vortex_name.zip" "$vortex_name" && sha256sum "$vortex_name.zip" > "$vortex_name.zip.sha256")
+echo "$dist_dir/$vortex_name.zip"

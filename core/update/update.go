@@ -15,7 +15,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const defaultReleaseAPI = "https://api.github.com/repos/glatzkopf94/restreamer-nistkastenlivestream/releases/latest"
+const defaultReleaseAPI = "https://api.github.com/repos/glatzkopf94/vortex/releases/latest"
 
 var developmentVersion = regexp.MustCompile(`^(v\d+\.\d+\.\d+)-dev(\d+)$`)
 

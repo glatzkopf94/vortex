@@ -416,14 +416,20 @@ def enforce_disk_reserve(database: dict[str, Any], last_check: float, now: float
     candidates: list[Path] = []
     for channel_id in dvr_channel_ids(database):
         root = DATA_DIR / channel_id
-        if root.is_dir():
-            candidates.extend(path for path in root.rglob("*.ts") if path.is_file())
-            candidates.extend(path for path in root.rglob("*.mp4") if path.is_file() and path.name != f"{channel_id}.mp4")
+        referenced = referenced_dvr_segments(channel_id)
+        if root.is_dir() and not root.is_symlink() and referenced is not None:
+            # Even disk pressure must not silently break the live playlist.
+            candidates.extend(path for path in root.rglob("*")
+                              if path.suffix in {".ts", ".mp4"} and path.is_file()
+                              and not path.is_symlink() and path not in referenced)
 
     candidates_with_age = []
+    cutoff = time.time() - dvr_max_hours(database) * 3600 - 60
     for path in candidates:
         try:
-            candidates_with_age.append((path.stat().st_mtime, path))
+            modified = path.stat().st_mtime
+            if modified < cutoff:
+                candidates_with_age.append((modified, path))
         except OSError:
             pass
     candidates_with_age.sort(key=lambda item: item[0])

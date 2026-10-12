@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import Button from '@mui/material/Button';
@@ -29,11 +30,11 @@ export default function Invalid({ address = '' }) {
 			<PaperHeader title={<Trans>Error</Trans>} onAbort={() => window.location.reload()} />
 			<PaperContent>
 				<Typography>
-					<Trans>There was an error connecting to Restreamer Core at {address}.</Trans>
+					<Trans>There was an error connecting to Vortex Core at {address}.</Trans>
 				</Typography>
 				{$mixed === true && (
 					<Typography sx={{ mt: '1em' }}>
-						<Trans>Connecting to Restreamer Core failed probably because of mixed content.</Trans>
+						<Trans>Connecting to Vortex Core failed probably because of mixed content.</Trans>
 					</Typography>
 				)}
 			</PaperContent>

@@ -4,7 +4,7 @@ set -eu
 
 project_dir="${1:-}"
 data_dir="${2:-}"
-repository="glatzkopf94/restreamer-nistkastenlivestream"
+repository="glatzkopf94/vortex"
 image_repository="ghcr.io/glatzkopf94/restreamer-nistkastenlivestream"
 release_api="https://api.github.com/repos/${repository}/releases/latest"
 

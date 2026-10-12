@@ -1,10 +1,11 @@
+# Modified 2026-10-10: Vortex product naming.
 msgid ""
 msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: POEditor.com\n"
-"Project-Id-Version: Restreamer\n"
+"Project-Id-Version: Vortex\n"
 "Language: de\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
@@ -31,8 +32,8 @@ msgid "<0>Show probe details</0>"
 msgstr "<0>Details der Überprüfung anzeigen</0>"
 
 #: src/views/Publication/Services/Core.js:209
-msgid "1. Switch to the interface of the target Restreamer."
-msgstr "Wechseln Sie auf die Oberfläche des Ziel-Restreamers."
+msgid "1. Switch to the interface of the target Vortex."
+msgstr "Wechseln Sie auf die Oberfläche des Ziel-Vortexs."
 
 #: src/views/Publication/Services/Core.js:211
 msgid "2. Create a new channel and select RTMP or SRT server."
@@ -616,12 +617,12 @@ msgid "Connecting ..."
 msgstr "Verbinde ..."
 
 #: src/views/Initializing.js:21
-msgid "Connecting to Restreamer Core ..."
-msgstr "Mit Restreamer Core verbinden …"
+msgid "Connecting to Vortex Core ..."
+msgstr "Mit Vortex Core verbinden …"
 
 #: src/views/Invalid.js:36
-msgid "Connecting to Restreamer Core failed probably because of mixed content."
-msgstr "Die Verbindung zu Restreamer Core ist wahrscheinlich wegen gemischter Inhalte fehlgeschlagen."
+msgid "Connecting to Vortex Core failed probably because of mixed content."
+msgstr "Die Verbindung zu Vortex Core ist wahrscheinlich wegen gemischter Inhalte fehlgeschlagen."
 
 #: src/misc/coders/settings/Video.js:314
 msgid "Constant frame rate (CFR)"
@@ -1441,8 +1442,8 @@ msgid "Horizontal Flip"
 msgstr "Horizontal spiegeln"
 
 #: src/views/Login.js:319
-msgid "Hosted Restreamer interface"
-msgstr "Gehostete Restreamer-Oberfläche"
+msgid "Hosted Vortex interface"
+msgstr "Gehostete Vortex-Oberfläche"
 
 #: src/views/Edit/Sources/Network.js:666
 msgid "HTTP and HTTPS"
@@ -1465,12 +1466,12 @@ msgid "Human readable name on the service."
 msgstr "Von Menschen lesbarer Name des Dienstes."
 
 #: src/views/Settings.js:2376
-msgid "If you changed the ports, it might be that Restreamer Core restarted already, but it is now available on a different port."
-msgstr "Wenn Sie die Ports geändert haben, kann es sein, dass Restreamer Core bereits neu gestartet wurde, aber jetzt auf einem anderen Port verfügbar ist."
+msgid "If you changed the ports, it might be that Vortex Core restarted already, but it is now available on a different port."
+msgstr "Wenn Sie die Ports geändert haben, kann es sein, dass Vortex Core bereits neu gestartet wurde, aber jetzt auf einem anderen Port verfügbar ist."
 
 #: src/views/Settings.js:2370
-msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Restreamer Core is reachable via port 80 from the internet. Please check the console log of Restreamer Core."
-msgstr "Wenn Sie Let’s Encrypt TLS aktiviert haben, kann es einige Zeit dauern, die Zertifikate zu erwerben. Stellen Sie sicher, dass Restreamer Core über Port 80 aus dem Internet erreichbar ist. Bitte überprüfen Sie das Protokoll in der Konsole von Restreamer Core."
+msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Vortex Core is reachable via port 80 from the internet. Please check the console log of Vortex Core."
+msgstr "Wenn Sie Let’s Encrypt TLS aktiviert haben, kann es einige Zeit dauern, die Zertifikate zu erwerben. Stellen Sie sicher, dass Vortex Core über Port 80 aus dem Internet erreichbar ist. Bitte überprüfen Sie das Protokoll in der Konsole von Vortex Core."
 
 #: src/views/Publication/Player.js:360
 msgid "iframe code"
@@ -1489,8 +1490,8 @@ msgid "Imprint"
 msgstr "Impressum"
 
 #: src/views/Playersite.js:285
-msgid "In addition to the player, the Restreamer offers a complete landingpage, which you can use to present your live stream easily and quickly."
-msgstr "Neben dem Player bietet der Restreamer eine komplette Landingpage, mit der Sie Ihren Live-Stream einfach und schnell präsentieren können."
+msgid "In addition to the player, the Vortex offers a complete landingpage, which you can use to present your live stream easily and quickly."
+msgstr "Neben dem Player bietet der Vortex eine komplette Landingpage, mit der Sie Ihren Live-Stream einfach und schnell präsentieren können."
 
 #: src/views/Edit/Profile.js:538
 #: src/views/Edit/Profile.js:701
@@ -2139,8 +2140,8 @@ msgid "Optional link"
 msgstr "Optionaler Link"
 
 #: src/views/Edit/Sources/Network.js:600
-msgid "Original Restreamer buffering and permissive decoder error handling."
-msgstr "Ursprüngliche Restreamer-Pufferung und großzügige Behandlung von Decoderfehlern."
+msgid "Original Vortex buffering and permissive decoder error handling."
+msgstr "Ursprüngliche Vortex-Pufferung und großzügige Behandlung von Decoderfehlern."
 
 #: src/misc/coders/Encoders/video/h264_v4l2m2m.js:196
 msgid "Output buffer"
@@ -2586,12 +2587,12 @@ msgid "Reconnecting in {0}s"
 msgstr "Wiederverbinden in {0}s"
 
 #: src/views/Settings.js:2367
-msgid "Reconnecting to Restreamer Core failed for the last {RETRIES} seconds."
-msgstr "Die Wiederherstellung der Verbindung zum Restreamer Core ist in den letzten {RETRIES} Sekunden fehlgeschlagen."
+msgid "Reconnecting to Vortex Core failed for the last {RETRIES} seconds."
+msgstr "Die Wiederherstellung der Verbindung zum Vortex Core ist in den letzten {RETRIES} Sekunden fehlgeschlagen."
 
 #: src/views/Password.js:173
-msgid "Reconnecting to Restreamer Core failed."
-msgstr "Die Wiederherstellung der Verbindung zu Restreamer Core ist fehlgeschlagen."
+msgid "Reconnecting to Vortex Core failed."
+msgstr "Die Wiederherstellung der Verbindung zu Vortex Core ist fehlgeschlagen."
 
 #: src/views/Edit/Sources/ALSA.js:131
 #: src/views/Edit/Sources/AVFoundation.js:190
@@ -2688,20 +2689,20 @@ msgstr "Neustart"
 
 #: src/views/Password.js:166
 #: src/views/Settings.js:2360
-msgid "Restarting Restreamer Core ..."
-msgstr "Neustart von Restreamer Core …"
+msgid "Restarting Vortex Core ..."
+msgstr "Neustart von Vortex Core …"
 
 #: src/views/Settings.js:1174
 msgid "Restarting the application failed."
 msgstr "Neustart der Anwendung ist fehlgeschlagen."
 
 #: src/views/Publication/Services/Core.js:206
-msgid "Restreamer instructions"
-msgstr "Restreamer-Anleitung"
+msgid "Vortex instructions"
+msgstr "Vortex-Anleitung"
 
 #: src/views/Settings.js:1395
-msgid "Restreamer Service"
-msgstr "Restreamer Service"
+msgid "Vortex Service"
+msgstr "Vortex Service"
 
 #: src/views/Main/index.js:287
 msgid "Retrieving stream data ..."
@@ -2895,8 +2896,8 @@ msgid "Select video source:"
 msgstr "Videoquelle auswählen:"
 
 #: src/views/Edit/Wizard/Source.js:19
-msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Restreamer)."
-msgstr "Wählen Sie aus, ob Sie den Stream von einer <0>Netzwerkquelle</0> (z. B. einer Netzwerkkamera) oder dem <1>internen RTMP-Server</1> (z. B. OBS-Streams an den Restreamer) beziehen."
+msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Vortex)."
+msgstr "Wählen Sie aus, ob Sie den Stream von einer <0>Netzwerkquelle</0> (z. B. einer Netzwerkkamera) oder dem <1>internen RTMP-Server</1> (z. B. OBS-Streams an den Vortex) beziehen."
 
 #: src/misc/EncodingSelect.js:215
 msgid "Select your encoding setting:"
@@ -2920,7 +2921,7 @@ msgstr "Auswahl"
 
 #: src/views/Settings.js:1351
 msgid "Send anonymous metrics (helps us for future development)"
-msgstr "Sende anonyme Anwendungsdaten (Hilft den Restreamer kontinuierlich zu verbessern)"
+msgstr "Sende anonyme Anwendungsdaten (Hilft den Vortex kontinuierlich zu verbessern)"
 
 #: src/views/Edit/Sources/Network.js:1183
 #: src/views/Edit/Sources/Network.js:1275
@@ -3240,8 +3241,8 @@ msgid "Strict"
 msgstr "Streng"
 
 #: src/views/Playersite.js:391
-msgid "Support datarhei Restreamer"
-msgstr "Unterstütze datarhei Restreamer"
+msgid "Support datarhei Vortex"
+msgstr "Unterstütze datarhei Vortex"
 
 #: src/views/Edit/Sources/Network.js:958
 #: src/views/Edit/Wizard/Sources/Network.js:116
@@ -3417,8 +3418,8 @@ msgid "The player uses the detected format before playback starts, avoiding blac
 msgstr "Der Player verwendet das erkannte Format bereits vor Wiedergabestart. Dadurch werden schwarze Balken und ein Formatwechsel nach dem Play-Klick vermieden."
 
 #: src/views/Settings.js:1476
-msgid "The public reachable domain name of the host this Restreamer is running on. Separate multiple domain names by a comma."
-msgstr "Der öffentlich erreichbare Domänenname des Hosts, auf dem der Restreamer läuft. Trennen Sie mehrere Domänennamen durch ein Komma."
+msgid "The public reachable domain name of the host this Vortex is running on. Separate multiple domain names by a comma."
+msgstr "Der öffentlich erreichbare Domänenname des Hosts, auf dem der Vortex läuft. Trennen Sie mehrere Domänennamen durch ein Komma."
 
 #: src/views/Publication/Edit.js:317
 msgid "The publication service \"{0}\" could not be deleted"
@@ -3514,7 +3515,7 @@ msgid "There was a problem storing the settings. Settings not saved."
 msgstr "Es gab ein Problem beim Speichern der Einstellungen. Einstellungen nicht gespeichert."
 
 #: src/views/Invalid.js:32
-msgid "There was an error connecting to Restreamer Core at {address}."
+msgid "There was an error connecting to Vortex Core at {address}."
 msgstr ""
 
 #: src/views/Edit/Sources/AudioLoop.js:129
@@ -3550,8 +3551,8 @@ msgid "This is a dummy service that explains to you the concepts of service."
 msgstr "Dies ist ein Dummy-Dienst, der Ihnen die Konzepte des Dienstes erklärt."
 
 #: src/views/Password.js:176
-msgid "This is not necessarily an error. However, it may take a bit longer for Restreamer Core to restart.."
-msgstr "Bitte Geduld. Es kann einen Moment dauern, bis der Restreamer Core neu gestartet ist …"
+msgid "This is not necessarily an error. However, it may take a bit longer for Vortex Core to restart.."
+msgstr "Bitte Geduld. Es kann einen Moment dauern, bis der Vortex Core neu gestartet ist …"
 
 #: src/views/Publication/Services/Dummy.js:31
 msgid "This is to mention the copyright regulations for the target of this service."
@@ -3895,8 +3896,8 @@ msgid "Usage"
 msgstr ""
 
 #: src/views/Login.js:343
-msgid "Use Auth0 for your running Restreamer Core. More <0>details</0>."
-msgstr "Verwenden Sie Auth0 für Ihren laufenden Restreamer Core. Mehr <0>Details</0>."
+msgid "Use Auth0 for your running Vortex Core. More <0>details</0>."
+msgstr "Verwenden Sie Auth0 für Ihren laufenden Vortex Core. Mehr <0>Details</0>."
 
 #: src/misc/filters/video/TextOverlay.js:291
 #~ msgid "Use source.field and optional number formatting in double braces. Missing values are displayed as --."
@@ -4039,8 +4040,8 @@ msgid "Webcam name and weather"
 msgstr "Webcamname und Wetter"
 
 #: src/views/Welcome.js:27
-msgid "Welcome to Restreamer v2, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
-msgstr "Willkommen bei Restreamer v2, der Lösung für die schnelle und einfache Veröffentlichung von Videos. Kostenlos für private und kommerzielle Nutzung. Weitere Hilfe in der <0>Dokumentation</0>."
+msgid "Welcome to Vortex, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
+msgstr "Willkommen bei Vortex, der Lösung für die schnelle und einfache Veröffentlichung von Videos. Kostenlos für private und kommerzielle Nutzung. Weitere Hilfe in der <0>Dokumentation</0>."
 
 #: src/misc/coders/Encoders/video/av1_librav1e.js:105
 msgid "What speed preset to use."
@@ -4148,8 +4149,8 @@ msgid "The NKL update check failed."
 msgstr "Die NKL-Updateprüfung ist fehlgeschlagen."
 
 #: src/views/Settings.js
-msgid "NKL Restreamer is up to date."
-msgstr "NKL Restreamer ist aktuell."
+msgid "Vortex is up to date."
+msgstr "Vortex ist aktuell."
 
 #: src/views/Settings.js
 msgid "The NKL update was installed. The interface is reloading."

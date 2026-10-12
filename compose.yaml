@@ -2,13 +2,17 @@ name: "${RESTREAMER_PROJECT_NAME:-restreamer-nkl}"
 
 services:
   restreamer-nkl:
-    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev22}"
-    container_name: "${RESTREAMER_CONTAINER_NAME:-restreamer-nkl}"
+    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev23}"
+    container_name: "${RESTREAMER_CONTAINER_NAME:-vortex}"
     restart: unless-stopped
     ports:
       - "${RESTREAMER_BIND_ADDRESS:-127.0.0.1}:${RESTREAMER_HTTP_PORT:-9080}:8080"
       - "${RESTREAMER_BIND_ADDRESS:-127.0.0.1}:${RESTREAMER_API_PORT:-9181}:8181"
     environment:
+      NKL_TIMELAPSE_ENABLE: "${NKL_TIMELAPSE_ENABLE:-true}"
+      NKL_TIMELAPSE_ROOT: /core/timelapse
+      NKL_TIMELAPSE_QUOTA_BYTES: "${NKL_TIMELAPSE_QUOTA_BYTES:-21474836480}"
+      NKL_TIMELAPSE_RESERVE_BYTES: "${NKL_TIMELAPSE_RESERVE_BYTES:-2147483648}"
       # Dynamic playlists, overlay text and generated player pages must bypass
       # Core's five-minute disk cache.
       CORE_STORAGE_DISK_CACHE_TYPES_BLOCK: ".m3u8 .mpd .txt .html .js"
@@ -28,6 +32,7 @@ services:
     volumes:
       - restreamer-config:/core/config
       - restreamer-data:/core/data
+      - timelapse:/core/timelapse
 
 volumes:
   restreamer-config:
@@ -36,3 +41,5 @@ volumes:
   restreamer-data:
     name: "${RESTREAMER_DATA_VOLUME:-restreamer-nkl-data}"
     external: true
+  timelapse:
+    name: "${RESTREAMER_TIMELAPSE_VOLUME:-restreamer-nkl-timelapse}"

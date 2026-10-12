@@ -2,7 +2,7 @@
 
 Zielrepository:
 
-`https://github.com/glatzkopf94/restreamer-nistkastenlivestream`
+`https://github.com/glatzkopf94/vortex`
 
 Dieses Projekt ist inhaltlich ein Fork beziehungsweise eine abgeleitete
 Version des datarhei Restreamers. Es liegt technisch in einem neuen Repository,
@@ -18,7 +18,7 @@ git init
 git branch -M main
 git add .
 git commit -m "NKL 1.3 Beta / 0.3.0-dev14"
-git remote add origin https://github.com/glatzkopf94/restreamer-nistkastenlivestream.git
+git remote add origin https://github.com/glatzkopf94/vortex.git
 git push -u origin main
 ```
 

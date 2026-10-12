@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +51,51 @@ def fixture():
 
 
 class DVRRetentionTests(unittest.TestCase):
+    def test_three_to_four_hours_removes_stale_core_limits(self):
+        db = fixture()
+        db["metadata"]["system"]["restreamer-ui"]["livechasing"]["dvr"]["maxHours"] = 4
+        for channel in IDS:
+            output = db["process"]["restreamer-ui:ingest:" + channel]["config"]["output"][0]
+            output["cleanup"] = [
+                {"pattern": f"diskfs:/{channel}/**.ts", "max_files": 5406,
+                 "max_file_age_seconds": 10812, "purge_on_delete": True},
+                {"pattern": "diskfs:/unrelated/**", "max_files": 10},
+            ]
+        MIGRATE.migrate_data(db)
+        for channel in IDS:
+            output = db["process"]["restreamer-ui:ingest:" + channel]["config"]["output"][0]
+            rule = output["cleanup"][0]
+            self.assertEqual(rule["max_files"], 0)
+            self.assertEqual(rule["max_file_age_seconds"], 0)
+            self.assertTrue(rule["purge_on_delete"])
+            self.assertEqual(output["cleanup"][1]["max_files"], 10)
+            self.assertIn("14400", str(output))
+        before = json.dumps(db, sort_keys=True)
+        MIGRATE.migrate_data(db)
+        self.assertEqual(json.dumps(db, sort_keys=True), before)
+
+    def test_four_hour_retention_and_disk_pressure_protect_playlist(self):
+        wall = 1_800_000_000
+        db = fixture()
+        db["metadata"]["system"]["restreamer-ui"]["livechasing"]["dvr"]["maxHours"] = 4
+        with tempfile.TemporaryDirectory() as directory, patch.object(MANAGER, "DATA_DIR", Path(directory)):
+            root = Path(directory) / IDS[0]
+            root.mkdir()
+            for name, age in [("fourth-hour.ts", 3.5), ("expired.ts", 5), ("referenced.ts", 5)]:
+                path = root / name
+                path.write_bytes(b"video")
+                os.utime(path, (wall-age*3600, wall-age*3600))
+            (Path(directory) / f"{IDS[0]}_output_0.m3u8").write_text(
+                f"#EXTM3U\n#EXTINF:2,\n{IDS[0]}/referenced.ts\n")
+            MANAGER.enforce_dvr_retention(db, 0, 100, wall)
+            self.assertTrue((root / "fourth-hour.ts").exists())
+            self.assertFalse((root / "expired.ts").exists())
+            self.assertTrue((root / "referenced.ts").exists())
+            with patch.object(MANAGER.shutil, "disk_usage", return_value=SimpleNamespace(free=0)), patch.object(MANAGER.time, "time", return_value=wall):
+                MANAGER.enforce_disk_reserve(db, 0, 100)
+            self.assertTrue((root / "referenced.ts").exists())
+            self.assertTrue((root / "fourth-hour.ts").exists())
+
     def test_nested_core_config_preserves_inputs_and_disabled_channels(self):
         db = fixture()
         disabled = "restreamer-ui:ingest:" + IDS[1]

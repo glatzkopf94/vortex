@@ -1,3 +1,4 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
 
 import { Trans } from '@lingui/macro';
@@ -18,7 +19,7 @@ export default function Source({ onAbort = () => {}, onHelp = () => {}, onAdvanc
 					<Typography>
 						<Trans>
 							Select whether you pull the stream from a <strong>network source</strong> (such as a network camera) or the{' '}
-							<strong>internal RTMP server</strong> (e.g., OBS streams to the Restreamer).
+							<strong>internal RTMP server</strong> (e.g., OBS streams to the Vortex).
 						</Trans>
 					</Typography>
 				</Grid>

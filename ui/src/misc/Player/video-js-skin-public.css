@@ -26,7 +26,7 @@
 
 /* controlbar */
 
-.vjs-public .vjs-control-bar {
+.video-js.vjs-public > .vjs-control-bar {
     height: 70px;
     padding-top: 20px;
     background: none;
@@ -92,42 +92,20 @@
     line-height: 50px;
 }
 
-/* Non-DVR streams keep a compact, reddish LIVE marker. */
-
-.vjs-public.vjs-live-no-dvr .vjs-live-control {
-    box-sizing: border-box;
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    height: 30px;
-    min-width: 4.5em;
-    margin-top: 10px;
-    padding: 0 .8em;
-    border: 1px solid rgba(255,105,105,.85);
-    border-radius: 4px;
-    background: rgba(120,0,0,.48);
-    color: #ffadad;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.vjs-public.vjs-live-no-dvr .vjs-live-display {
-    margin: 0;
-    width: auto;
-    line-height: 1;
-}
+/* Non-DVR streams retain the native LIVE display on the left. */
+.vjs-public.vjs-live-no-dvr .vjs-live-control {display:flex;align-items:center;min-width:5em}
+.vjs-public.vjs-live-no-dvr .vjs-live-display {margin-left:0;line-height:normal}
+.vjs-public.vjs-live-no-dvr .vjs-seek-to-live-control {display:none!important}
 
 /* Wall-clock marks sit above the DVR seekbar and never intercept seeking. */
-.vjs-public.vjs-live-dvr .lc-dvr-markers {
+:is(.vjs-public.vjs-live-dvr,.nkl-time-markers) .lc-dvr-markers {
     position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 2;
 }
 
-.vjs-public.vjs-live-dvr .lc-dvr-tick {
+:is(.vjs-public.vjs-live-dvr,.nkl-time-markers) .lc-dvr-tick {
     position: absolute;
     top: -3px;
     width: 2px;
@@ -138,7 +116,7 @@
     box-shadow: 0 0 2px #000;
 }
 
-.vjs-public.vjs-live-dvr .lc-dvr-tick-label {
+:is(.vjs-public.vjs-live-dvr,.nkl-time-markers) .lc-dvr-tick-label {
     position: absolute;
     bottom: 12px;
     left: 50%;
@@ -154,7 +132,7 @@
     display: none !important;
 }
 
-.vjs-public.vjs-live-dvr .lc-dvr-clock-tooltip {
+:is(.vjs-public.vjs-live-dvr,.nkl-time-markers) .lc-dvr-clock-tooltip {
     position: absolute;
     bottom: 21px;
     z-index: 3;
@@ -170,7 +148,7 @@
     pointer-events: none;
 }
 
-.vjs-public.vjs-live-dvr .lc-dvr-clock-tooltip.is-visible {
+:is(.vjs-public.vjs-live-dvr,.nkl-time-markers) .lc-dvr-clock-tooltip.is-visible {
     display: block;
 }
 
@@ -293,3 +271,14 @@
 .vjs-public .vjs-lock-open {
     z-index: 1000;
 }
+
+/* Bound the controls to the bottom of the player, including in admin dialogs. */
+.video-js.vjs-public > .vjs-control-bar {
+    top: auto; bottom: 0; left: 0; width: 100%;
+    box-sizing: border-box; height: 70px; padding: 20px 0 0;
+}
+
+/* VOD shares the skin, but never advertises a live stream. */
+.video-js.nkl-timelapse-video .vjs-live-control,
+.video-js.nkl-timelapse-video .vjs-seek-to-live-control {display:none!important}
+.video-js.nkl-timelapse-video > .vjs-control-bar > .vjs-progress-control {display:flex!important}

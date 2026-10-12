@@ -26,6 +26,8 @@ docker exec "$container" ffmpeg -hide_banner -h muxer=hls 2>&1 | grep -q hls_max
 docker exec "$container" sh -c 'grep -Fq "lc-dvr-markers" /core/ui/_player/videojs/player.html'
 docker exec "$container" sh -c "ps auxww | grep '[l]ivechasing-manager.py'" >/dev/null
 docker exec "$container" sh -c 'grep -Fq "def purge_dvr_content" /core/bin/livechasing-manager.py'
+docker exec "$container" python3 -c 'from urllib.request import urlopen; import json; s=json.load(urlopen("http://127.0.0.1:8099/admin/status", timeout=10)); assert "projects" in s'
+docker inspect "$container" --format '{{range .Mounts}}{{println .Destination}}{{end}}' | grep -Fxq /core/timelapse
 docker exec "$container" test -d /core/data/livechasing-control/requests
 docker exec "$container" test -d /core/data/livechasing-control/responses
 docker exec "$container" sh -c 'test "$CORE_STORAGE_DISK_CACHE_TYPES_BLOCK" = ".m3u8 .mpd .txt .html .js"'
@@ -49,7 +51,7 @@ docker exec "$container" sh -c 'grep -Fq "Delete all DVR content" /core/ui/stati
 docker exec "$container" sh -c 'grep -Fq "install-latest-nkl-release" /core/ui/static/js/main.*.js'
 docker exec "$container" sh -c 'test "$NKL_RELEASE_VERSION" = "'"$RELEASE_VERSION"'"'
 docker exec "$container" sh -c 'grep -Fq "livechasing-viewer-id-v1" /core/ui/_player/videojs/player.html'
-docker exec "$container" sh -c 'ls /core/ui/static/media/background-restreamer.*.png >/dev/null'
+docker exec "$container" sh -c 'ls /core/ui/static/media/vortex-background.*.jpg >/dev/null'
 
 docker exec -i "$container" python3 - <<'PY'
 from pathlib import Path

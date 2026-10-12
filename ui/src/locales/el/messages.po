@@ -1,10 +1,11 @@
+# Modified 2026-10-10: Vortex product naming.
 msgid ""
 msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: POEditor.com\n"
-"Project-Id-Version: Restreamer\n"
+"Project-Id-Version: Vortex\n"
 "Language: el\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
@@ -31,8 +32,8 @@ msgid "<0>Show probe details</0>"
 msgstr "<0>Εμφάνιση λεπτομερειών ανιχνευτή</0>"
 
 #: src/views/Publication/Services/Core.js:209
-msgid "1. Switch to the interface of the target Restreamer."
-msgstr "1. Μεταβείτε στη διασύνδεση του Restreamer-στόχου."
+msgid "1. Switch to the interface of the target Vortex."
+msgstr "1. Μεταβείτε στη διασύνδεση του Vortex-στόχου."
 
 #: src/views/Publication/Services/Core.js:211
 msgid "2. Create a new channel and select RTMP or SRT server."
@@ -612,12 +613,12 @@ msgid "Connecting ..."
 msgstr "Σύνδεση ..."
 
 #: src/views/Initializing.js:21
-msgid "Connecting to Restreamer Core ..."
-msgstr "Σύνδεση στο Restreamer Core ..."
+msgid "Connecting to Vortex Core ..."
+msgstr "Σύνδεση στο Vortex Core ..."
 
 #: src/views/Invalid.js:36
-msgid "Connecting to Restreamer Core failed probably because of mixed content."
-msgstr "Η σύνδεση στο Restreamer Core απέτυχε πιθανώς λόγω μικτού περιεχομένου."
+msgid "Connecting to Vortex Core failed probably because of mixed content."
+msgstr "Η σύνδεση στο Vortex Core απέτυχε πιθανώς λόγω μικτού περιεχομένου."
 
 #: src/misc/coders/settings/Video.js:314
 msgid "Constant frame rate (CFR)"
@@ -1437,8 +1438,8 @@ msgid "Horizontal Flip"
 msgstr "Οριζόντια αναστροφή"
 
 #: src/views/Login.js:319
-msgid "Hosted Restreamer interface"
-msgstr "Διασύνδεση Restreamer με φιλοξενία"
+msgid "Hosted Vortex interface"
+msgstr "Διασύνδεση Vortex με φιλοξενία"
 
 #: src/views/Edit/Sources/Network.js:666
 msgid "HTTP and HTTPS"
@@ -1461,12 +1462,12 @@ msgid "Human readable name on the service."
 msgstr "Όνομα της υπηρεσίας που μπορεί να διαβαστεί από τον άνθρωπο."
 
 #: src/views/Settings.js:2376
-msgid "If you changed the ports, it might be that Restreamer Core restarted already, but it is now available on a different port."
-msgstr "Αν αλλάξατε τις θύρες, μπορεί το Restreamer Core να έχει ήδη επανεκκινήσει, αλλά τώρα είναι διαθέσιμο σε διαφορετική θύρα."
+msgid "If you changed the ports, it might be that Vortex Core restarted already, but it is now available on a different port."
+msgstr "Αν αλλάξατε τις θύρες, μπορεί το Vortex Core να έχει ήδη επανεκκινήσει, αλλά τώρα είναι διαθέσιμο σε διαφορετική θύρα."
 
 #: src/views/Settings.js:2370
-msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Restreamer Core is reachable via port 80 from the internet. Please check the console log of Restreamer Core."
-msgstr "Αν έχετε ενεργοποιήσει το Let's Encrypt TLS, μπορεί να χρειαστεί λίγος χρόνος για να αποκτήσετε τα πιστοποιητικά. Βεβαιωθείτε ότι το Restreamer Core είναι προσβάσιμο μέσω της θύρας 80 από το διαδίκτυο. Ελέγξτε το αρχείο καταγραφής της κονσόλας του Restreamer Core."
+msgid "If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Vortex Core is reachable via port 80 from the internet. Please check the console log of Vortex Core."
+msgstr "Αν έχετε ενεργοποιήσει το Let's Encrypt TLS, μπορεί να χρειαστεί λίγος χρόνος για να αποκτήσετε τα πιστοποιητικά. Βεβαιωθείτε ότι το Vortex Core είναι προσβάσιμο μέσω της θύρας 80 από το διαδίκτυο. Ελέγξτε το αρχείο καταγραφής της κονσόλας του Vortex Core."
 
 #: src/views/Publication/Player.js:360
 msgid "iframe code"
@@ -1485,8 +1486,8 @@ msgid "Imprint"
 msgstr "Εκτύπωση"
 
 #: src/views/Playersite.js:285
-msgid "In addition to the player, the Restreamer offers a complete landingpage, which you can use to present your live stream easily and quickly."
-msgstr "Εκτός από τη συσκευή αναπαραγωγής, το Restreamer προσφέρει μια πλήρη σελίδα προορισμού, την οποία μπορείτε να χρησιμοποιήσετε για να παρουσιάσετε τη ζωντανή ροή σας εύκολα και γρήγορα."
+msgid "In addition to the player, the Vortex offers a complete landingpage, which you can use to present your live stream easily and quickly."
+msgstr "Εκτός από τη συσκευή αναπαραγωγής, το Vortex προσφέρει μια πλήρη σελίδα προορισμού, την οποία μπορείτε να χρησιμοποιήσετε για να παρουσιάσετε τη ζωντανή ροή σας εύκολα και γρήγορα."
 
 #: src/views/Edit/Profile.js:538
 #: src/views/Edit/Profile.js:701
@@ -2135,7 +2136,7 @@ msgid "Optional link"
 msgstr ""
 
 #: src/views/Edit/Sources/Network.js:600
-msgid "Original Restreamer buffering and permissive decoder error handling."
+msgid "Original Vortex buffering and permissive decoder error handling."
 msgstr ""
 
 #: src/misc/coders/Encoders/video/h264_v4l2m2m.js:196
@@ -2578,12 +2579,12 @@ msgid "Reconnecting in {0}s"
 msgstr "Επανασύνδεση σε {0}s"
 
 #: src/views/Settings.js:2367
-msgid "Reconnecting to Restreamer Core failed for the last {RETRIES} seconds."
-msgstr "Η επανασύνδεση με τον πυρήνα Restreamer απέτυχε για τα τελευταία {RETRIES} δευτερόλεπτα."
+msgid "Reconnecting to Vortex Core failed for the last {RETRIES} seconds."
+msgstr "Η επανασύνδεση με τον πυρήνα Vortex απέτυχε για τα τελευταία {RETRIES} δευτερόλεπτα."
 
 #: src/views/Password.js:173
-msgid "Reconnecting to Restreamer Core failed."
-msgstr "Η επανασύνδεση με το Restreamer Core απέτυχε."
+msgid "Reconnecting to Vortex Core failed."
+msgstr "Η επανασύνδεση με το Vortex Core απέτυχε."
 
 #: src/views/Edit/Sources/ALSA.js:131
 #: src/views/Edit/Sources/AVFoundation.js:190
@@ -2680,20 +2681,20 @@ msgstr "Επανεκκίνηση του"
 
 #: src/views/Password.js:166
 #: src/views/Settings.js:2360
-msgid "Restarting Restreamer Core ..."
-msgstr "Επανεκκίνηση του Restreamer Core ..."
+msgid "Restarting Vortex Core ..."
+msgstr "Επανεκκίνηση του Vortex Core ..."
 
 #: src/views/Settings.js:1174
 msgid "Restarting the application failed."
 msgstr "Η επανεκκίνηση της εφαρμογής απέτυχε."
 
 #: src/views/Publication/Services/Core.js:206
-msgid "Restreamer instructions"
-msgstr "Οδηγίες Restreamer"
+msgid "Vortex instructions"
+msgstr "Οδηγίες Vortex"
 
 #: src/views/Settings.js:1395
-msgid "Restreamer Service"
-msgstr "Υπηρεσία Restreamer"
+msgid "Vortex Service"
+msgstr "Υπηρεσία Vortex"
 
 #: src/views/Main/index.js:287
 msgid "Retrieving stream data ..."
@@ -2887,8 +2888,8 @@ msgid "Select video source:"
 msgstr "Επιλέξτε πηγή βίντεο:"
 
 #: src/views/Edit/Wizard/Source.js:19
-msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Restreamer)."
-msgstr "Επιλέξτε αν θα αντλήσετε τη ροή από μια <0>πηγή δικτύου</0> (όπως μια κάμερα δικτύου) ή από τον <1>εσωτερικό διακομιστή RTMP</1> (π.χ. ροές OBS στο Restreamer)."
+msgid "Select whether you pull the stream from a <0>network source</0> (such as a network camera) or the <1>internal RTMP server</1> (e.g., OBS streams to the Vortex)."
+msgstr "Επιλέξτε αν θα αντλήσετε τη ροή από μια <0>πηγή δικτύου</0> (όπως μια κάμερα δικτύου) ή από τον <1>εσωτερικό διακομιστή RTMP</1> (π.χ. ροές OBS στο Vortex)."
 
 #: src/misc/EncodingSelect.js:215
 msgid "Select your encoding setting:"
@@ -3232,8 +3233,8 @@ msgid "Strict"
 msgstr ""
 
 #: src/views/Playersite.js:391
-msgid "Support datarhei Restreamer"
-msgstr "Υποστήριξη datarhei Restreamer"
+msgid "Support datarhei Vortex"
+msgstr "Υποστήριξη datarhei Vortex"
 
 #: src/views/Edit/Sources/Network.js:958
 #: src/views/Edit/Wizard/Sources/Network.js:116
@@ -3409,8 +3410,8 @@ msgid "The player uses the detected format before playback starts, avoiding blac
 msgstr ""
 
 #: src/views/Settings.js:1476
-msgid "The public reachable domain name of the host this Restreamer is running on. Separate multiple domain names by a comma."
-msgstr "Το δημόσιο προσβάσιμο όνομα τομέα του κεντρικού υπολογιστή στον οποίο εκτελείται αυτός ο Restreamer. Διαχωρίστε πολλαπλά ονόματα τομέα με κόμμα."
+msgid "The public reachable domain name of the host this Vortex is running on. Separate multiple domain names by a comma."
+msgstr "Το δημόσιο προσβάσιμο όνομα τομέα του κεντρικού υπολογιστή στον οποίο εκτελείται αυτός ο Vortex. Διαχωρίστε πολλαπλά ονόματα τομέα με κόμμα."
 
 #: src/views/Publication/Edit.js:317
 msgid "The publication service \"{0}\" could not be deleted"
@@ -3506,7 +3507,7 @@ msgid "There was a problem storing the settings. Settings not saved."
 msgstr "Υπήρξε πρόβλημα με την αποθήκευση των ρυθμίσεων. Οι ρυθμίσεις δεν αποθηκεύτηκαν."
 
 #: src/views/Invalid.js:32
-msgid "There was an error connecting to Restreamer Core at {address}."
+msgid "There was an error connecting to Vortex Core at {address}."
 msgstr ""
 
 #: src/views/Edit/Sources/AudioLoop.js:129
@@ -3538,8 +3539,8 @@ msgid "This is a dummy service that explains to you the concepts of service."
 msgstr "Πρόκειται για μια εικονική υπηρεσία που σας εξηγεί τις έννοιες της υπηρεσίας."
 
 #: src/views/Password.js:176
-msgid "This is not necessarily an error. However, it may take a bit longer for Restreamer Core to restart.."
-msgstr "Αυτό δεν αποτελεί απαραίτητα σφάλμα. Ωστόσο, μπορεί να πάρει λίγο περισσότερο χρόνο για να επανεκκινήσει το Restreamer Core.."
+msgid "This is not necessarily an error. However, it may take a bit longer for Vortex Core to restart.."
+msgstr "Αυτό δεν αποτελεί απαραίτητα σφάλμα. Ωστόσο, μπορεί να πάρει λίγο περισσότερο χρόνο για να επανεκκινήσει το Vortex Core.."
 
 #: src/views/Publication/Services/Dummy.js:31
 msgid "This is to mention the copyright regulations for the target of this service."
@@ -3883,8 +3884,8 @@ msgid "Usage"
 msgstr ""
 
 #: src/views/Login.js:343
-msgid "Use Auth0 for your running Restreamer Core. More <0>details</0>."
-msgstr "Χρησιμοποιήστε το Auth0 για το Restreamer Core που εκτελείτε. Περισσότερες <0>λεπτομέρειες</0>."
+msgid "Use Auth0 for your running Vortex Core. More <0>details</0>."
+msgstr "Χρησιμοποιήστε το Auth0 για το Vortex Core που εκτελείτε. Περισσότερες <0>λεπτομέρειες</0>."
 
 #: src/misc/filters/video/TextOverlay.js:291
 #~ msgid "Use source.field and optional number formatting in double braces. Missing values are displayed as --."
@@ -4027,8 +4028,8 @@ msgid "Webcam name and weather"
 msgstr ""
 
 #: src/views/Welcome.js:27
-msgid "Welcome to Restreamer v2, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
-msgstr "Καλώς ήρθατε στο Restreamer v2, τη λύση για γρήγορη και εύκολη δημοσίευση βίντεο. Δωρεάν για ιδιωτική και εμπορική χρήση. Περαιτέρω βοήθεια στα <0>docs</0>."
+msgid "Welcome to Vortex, the solution for fast and easy video publishing. Free for private and commercial use. Further help in the <0>docs</0>."
+msgstr "Καλώς ήρθατε στο Vortex, τη λύση για γρήγορη και εύκολη δημοσίευση βίντεο. Δωρεάν για ιδιωτική και εμπορική χρήση. Περαιτέρω βοήθεια στα <0>docs</0>."
 
 #: src/misc/coders/Encoders/video/av1_librav1e.js:105
 msgid "What speed preset to use."

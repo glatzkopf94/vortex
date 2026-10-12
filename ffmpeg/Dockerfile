@@ -37,7 +37,7 @@ RUN patch -p1 --batch < /contrib/posix-ioctl.patch && \
     find /build -type f -name '*.rej' -delete
 
 RUN ./configure \
-      --extra-version=nkl-restreamer-0.3.0-dev22 \
+      --extra-version=nkl-restreamer-0.3.0-dev23 \
       --prefix=/usr \
       --enable-gpl \
       --enable-version3 \

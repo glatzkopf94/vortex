@@ -5,7 +5,7 @@ jest.mock('uuid', () => ({
 	v4: jest.fn(),
 }));
 
-test('DVR segment cleanup uses only the playlist count and no nominal age', () => {
+test('DVR cleanup has no independent nominal age limit', () => {
 	expect(getHLSSegmentCleanupAge({ hls: { dvr: { enabled: true }, listSize: 7200, segmentDuration: 2 } })).toBe(0);
 	expect(getHLSSegmentCleanupAge({ hls: { dvr: { enabled: false }, listSize: 6, segmentDuration: 2 } })).toBe(24);
 });

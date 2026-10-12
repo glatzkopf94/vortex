@@ -1,3 +1,4 @@
+// Modified 2026-10-10: bounded response capture and exact-sized retained bodies.
 // Package cache is an in-memory LRU cache middleware
 package cache
 
@@ -55,6 +56,11 @@ func NewWithConfig(config Config) echo.MiddlewareFunc {
 			req := c.Request()
 			res := c.Response()
 
+			if req.Header.Get("Range") != "" {
+				res.Header().Set("X-Cache", "SKIP RANGE")
+				return next(c)
+			}
+
 			if req.Method != "GET" {
 				res.Header().Set("X-Cache", "SKIP ONLYGET")
 				return next(c)
@@ -72,7 +78,9 @@ func NewWithConfig(config Config) echo.MiddlewareFunc {
 				writer := res.Writer
 
 				w := &cacheWriter{
-					header: writer.Header().Clone(),
+					header:    writer.Header().Clone(),
+					writer:    writer,
+					cacheable: config.Cache.IsSizeCacheable,
 				}
 				res.Writer = w
 
@@ -83,12 +91,21 @@ func NewWithConfig(config Config) echo.MiddlewareFunc {
 				// Restore original writer
 				res.Writer = writer
 
-				// Copy only the headers that will be cached as well
-				copyCacheHeaders(res.Header(), w.header, config.Headers)
+				if w.streamed {
+					return w.err
+				}
 
+				// Preserve response headers, including content range and length.
+				for k, v := range w.header {
+					res.Header()[k] = append([]string(nil), v...)
+				}
+
+				if w.code == 0 {
+					w.code = http.StatusOK
+				}
 				res.Status = w.code
 
-				defer res.Write(w.body.Bytes())
+				defer writer.Write(w.body.Bytes())
 
 				if res.Status != 200 {
 					res.Header().Set("X-Cache", "SKIP NOTOK")
@@ -104,9 +121,11 @@ func NewWithConfig(config Config) echo.MiddlewareFunc {
 					return nil
 				}
 
+				retained := make([]byte, w.body.Len())
+				copy(retained, w.body.Bytes())
 				o := &cacheObject{
 					status: res.Status,
-					body:   w.body.Bytes(),
+					body:   retained,
 					header: w.header.Clone(),
 				}
 
@@ -163,9 +182,13 @@ type cacheObject struct {
 }
 
 type cacheWriter struct {
-	code   int
-	header http.Header
-	body   bytes.Buffer
+	code      int
+	header    http.Header
+	body      bytes.Buffer
+	writer    http.ResponseWriter
+	cacheable func(uint64) bool
+	streamed  bool
+	err       error
 }
 
 func (w *cacheWriter) Header() http.Header {
@@ -177,9 +200,54 @@ func (w *cacheWriter) Header() http.Header {
 }
 
 func (w *cacheWriter) WriteHeader(code int) {
-	w.code = code
+	if w.code == 0 {
+		w.code = code
+	}
 }
 
 func (w *cacheWriter) Write(body []byte) (int, error) {
+	if w.code == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	if !w.streamed && (uint64(w.body.Len())+uint64(len(body)) > 8*1024*1024 || (w.cacheable != nil && !w.cacheable(uint64(w.body.Len())+uint64(len(body))))) {
+		w.stream("SKIP TOOBIG")
+	}
+	if w.err != nil {
+		return 0, w.err
+	}
+	if w.streamed {
+		n, err := w.writer.Write(body)
+		if err != nil {
+			w.err = err
+		}
+		return n, err
+	}
 	return w.body.Write(body)
+}
+
+// Switch to pass-through before capturing an oversized chunk. Never truncate delivery.
+func (w *cacheWriter) stream(reason string) {
+	if w.streamed {
+		return
+	}
+	w.streamed = true
+	if w.code == 0 {
+		w.code = http.StatusOK
+	}
+	for k, v := range w.header {
+		w.writer.Header()[k] = append([]string(nil), v...)
+	}
+	w.writer.Header().Set("X-Cache", reason)
+	w.writer.WriteHeader(w.code)
+	if w.body.Len() > 0 {
+		_, w.err = w.writer.Write(w.body.Bytes())
+	}
+	w.body = bytes.Buffer{}
+}
+
+func (w *cacheWriter) Flush() {
+	w.stream("SKIP FLUSH")
+	if f, ok := w.writer.(http.Flusher); ok {
+		f.Flush()
+	}
 }

@@ -1,4 +1,8 @@
+// Modified 2026-10-10 by Alexander / Nistkasten Livestream: Vortex UI branding.
 import React from 'react';
+import Timelapse from './Timelapse';
+import DiskSpace from './DiskSpace';
+import FtpUpload from './FtpUpload';
 import { useNavigate, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
@@ -19,7 +23,7 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import WarningIcon from '@mui/icons-material/Warning';
 
-import settingsImage from '../assets/images/settings.png';
+import settingsImage from '../assets/images/vortex-background.jpg';
 import BoxText from '../misc/BoxText';
 import BoxTextarea from '../misc/BoxTextarea';
 import Checkbox from '../misc/Checkbox';
@@ -848,7 +852,7 @@ export default function Settings({ restreamer = null }) {
 		if (!info || info.error) {
 			notify.Dispatch('error', 'nkl:update-check', i18n._(t`The NKL update check failed.`));
 		} else if (!restreamer.HasUpdates()) {
-			notify.Dispatch('info', 'nkl:update-current', i18n._(t`NKL Restreamer is up to date.`));
+			notify.Dispatch('info', 'nkl:update-current', i18n._(t`Vortex is up to date.`));
 		}
 	};
 
@@ -959,6 +963,7 @@ export default function Settings({ restreamer = null }) {
 		}
 
 		setTab(value);
+		navigate(`/settings/${value}`, { replace: true });
 	};
 
 	const updateLogdata = async () => {
@@ -1341,6 +1346,8 @@ export default function Settings({ restreamer = null }) {
 							<ErrorTab className="tab" label={<Trans>Network</Trans>} value="network" errors={$tabs.network.errors} />
 							<ErrorTab className="tab" label={<Trans>Authorization</Trans>} value="auth" errors={$tabs.auth.errors} />
 							<ErrorTab className="tab" label="DVR" value="dvr" errors={false} />
+							<ErrorTab className="tab" label="Zeitraffer" value="timelapse" errors={false} />
+                            <ErrorTab className="tab" label="FTP-Upload" value="ftp-upload" errors={false} />
 							{$expert === true && <ErrorTab className="tab" label={<Trans>Playback</Trans>} value="playback" errors={$tabs.playback.errors} />}
 							{$expert === true && <ErrorTab className="tab" label={<Trans>Storage</Trans>} value="storage" errors={$tabs.storage.errors} />}
 							<ErrorTab className="tab" label={<Trans>RTMP</Trans>} value="rtmp" errors={$tabs.rtmp.errors} />
@@ -1351,7 +1358,7 @@ export default function Settings({ restreamer = null }) {
 							<Grid container spacing={2}>
 								<Grid item xs={12}>
 									<Grid item xs={12}>
-										<PaperThumb image={settingsImage} title="Welcome to Restreamer v2" height="200px" />
+										<PaperThumb image={settingsImage} title="Welcome to Vortex" height="200px" />
 									</Grid>
 								</Grid>
 								<Grid item xs={12}>
@@ -1449,7 +1456,7 @@ export default function Settings({ restreamer = null }) {
 								<Grid item xs={12}>
 									<Typography variant="body1">
 										<Trans>Setting for connection to the service.</Trans>{' '}
-										<Link color="secondary" href="https://service.datarhei.com" target="_blank">
+										<Link color="secondary" href="https://github.com/glatzkopf94/vortex" target="_blank">
 											<Trans>More about the service</Trans>
 										</Link>
 										.
@@ -1457,7 +1464,7 @@ export default function Settings({ restreamer = null }) {
 								</Grid>
 								<Grid item xs={12}>
 									<Checkbox
-										label={<Trans>Restreamer Service</Trans>}
+										label={<Trans>Vortex Service</Trans>}
 										checked={config.service.enable}
 										disabled={env('service.enable')}
 										onChange={handleChange('service.enable')}
@@ -1539,7 +1546,7 @@ export default function Settings({ restreamer = null }) {
 									<ErrorBox configvalue="host.name" messages={$tabs.network.messages} />
 									<Typography variant="caption">
 										<Trans>
-											The public reachable domain name of the host this Restreamer is running on. Separate multiple domain names by a
+											The public reachable domain name of the host this Vortex is running on. Separate multiple domain names by a
 											comma.
 										</Trans>
 									</Typography>
@@ -1813,6 +1820,12 @@ export default function Settings({ restreamer = null }) {
 								</Grid>
 							</Grid>
 						</TabPanel>
+						<TabPanel value={$tab} index="ftp-upload" className="panel">
+                            {$tab === 'ftp-upload' && <FtpUpload restreamer={restreamer} />}
+                        </TabPanel>
+                        <TabPanel value={$tab} index="timelapse" className="panel">
+							{$tab === 'timelapse' && <Timelapse restreamer={restreamer} />}
+						</TabPanel>
 						<TabPanel value={$tab} index="dvr" className="panel">
 							<Grid container spacing={2}>
 								<Grid item xs={12}>
@@ -1871,6 +1884,7 @@ export default function Settings({ restreamer = null }) {
 									<Typography variant="h2">
 										<Trans>Storage</Trans>
 									</Typography>
+                                    {$tab==='storage'&&<DiskSpace restreamer={restreamer}/>}
 								</Grid>
 								<Grid item xs={12}>
 									<Typography variant="h3">
@@ -1956,7 +1970,7 @@ export default function Settings({ restreamer = null }) {
 											color="secondary"
 											href="#/settings/auth"
 											onClick={() => {
-												setTab('auth');
+												setTab('auth'); navigate('/settings/auth',{replace:true});
 											}}
 										>
 											login (JWT)
@@ -2128,7 +2142,7 @@ export default function Settings({ restreamer = null }) {
 												color="secondary"
 												href="#/settings/network"
 												onClick={() => {
-													setTab('network');
+													setTab('network'); navigate('/settings/network',{replace:true});
 												}}
 											>
 												TLS/HTTPS
@@ -2435,24 +2449,24 @@ export default function Settings({ restreamer = null }) {
 						{$restart.timeout === false ? (
 							<React.Fragment>
 								<Typography variant="body1">
-									<Trans>Restarting Restreamer Core ...</Trans>
+									<Trans>Restarting Vortex Core ...</Trans>
 								</Typography>
 								<LinearProgress sx={{ mt: '1em' }} />
 							</React.Fragment>
 						) : (
 							<React.Fragment>
 								<Typography variant="body1">
-									<Trans>Reconnecting to Restreamer Core failed for the last {RETRIES} seconds.</Trans>
+									<Trans>Reconnecting to Vortex Core failed for the last {RETRIES} seconds.</Trans>
 								</Typography>
 								<Typography variant="body1" sx={{ mt: '1em' }}>
 									<Trans>
-										If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Restreamer Core is
-										reachable via port 80 from the internet. Please check the console log of Restreamer Core.
+										If you enabled Let's Encrypt TLS it might take some time to acquire the certificates. Make sure that Vortex Core is
+										reachable via port 80 from the internet. Please check the console log of Vortex Core.
 									</Trans>
 								</Typography>
 								<Typography variant="body1" sx={{ mt: '1em' }}>
 									<Trans>
-										If you changed the ports, it might be that Restreamer Core restarted already, but it is now available on a different
+										If you changed the ports, it might be that Vortex Core restarted already, but it is now available on a different
 										port.
 									</Trans>
 								</Typography>

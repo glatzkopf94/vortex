@@ -7,6 +7,7 @@ Overlay-free captures may briefly read the configured original camera source.
 from __future__ import annotations
 import concurrent.futures
 import hashlib
+import functools
 import json
 import math
 import os
@@ -65,6 +66,14 @@ def run(args, timeout=60):
         raise RuntimeError(e.stderr.decode('utf-8','replace')[-1000:]) from e
 
 
+@functools.lru_cache(maxsize=1)
+def ffmpeg_progress_options():
+    # The bundled JSON-stats patch bypasses FFmpeg's standard -progress writer.
+    # Stock FFmpeg does not know this switch, so detect support once per process.
+    result=subprocess.run(['ffmpeg','-hide_banner','-h','full'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=15,check=True)
+    return ['-jsonstats','0'] if re.search(rb'(?m)^-jsonstats\s',result.stdout) else []
+
+
 class Service:
     def __init__(self, root, core_db=None, data=None, min_free=None, quota=None, recover=True):
         self.root = Path(root); self.root.mkdir(parents=True, exist_ok=True)
@@ -105,6 +114,7 @@ class Service:
                 transfer.save_json(self.root/'transfer-result.json',{**previous,'state':'error','at':time.time(),'message':'Vorherige Übertragung durch Dienstneustart unterbrochen. Erneuter manueller Upload möglich.'})
         except (OSError,ValueError):pass
         self.last_usage = (0,0)
+        self.next_retention = 0
         self.render_retry = {}
         self.processing = {}
         if recover: self.recover_attempts()
@@ -201,6 +211,12 @@ class Service:
         if not isinstance(request, dict): raise ValueError('Ungueltiger Auftrag')
         action=request.get('action'); channel=request.get('channel')
         if action=='set_channel_active': return self.set_channel_active(channel,request.get('active'))
+        if action=='configure_retention':
+            days=request.get('days')
+            if type(days) is not int or days not in (0,1,3,7): raise ValueError('Aufbewahrung muss nie, 1, 3 oder 7 Tage sein.')
+            self.write('INSERT OR REPLACE INTO global_settings VALUES(?,?)',('retentionDays',json.dumps(days)))
+            self.next_retention=0
+            return self.global_settings()
         if action=='configure_global':
             value=request.get('includeBurnedOverlays')
             if not isinstance(value,bool): raise ValueError('Boolescher Wert erwartet')
@@ -316,7 +332,36 @@ class Service:
 
     def global_settings(self):
         rows=self.rows('SELECT value FROM global_settings WHERE key=?',('includeBurnedOverlays',))
-        return {'includeBurnedOverlays':bool(rows and json.loads(rows[0]['value']) is True)}
+        retention=self.rows('SELECT value FROM global_settings WHERE key=?',('retentionDays',))
+        days=json.loads(retention[0]['value']) if retention else 0
+        return {'includeBurnedOverlays':bool(rows and json.loads(rows[0]['value']) is True),
+                'retentionDays':days if type(days) is int and days in (0,1,3,7) else 0}
+
+    def cleanup_retention(self, now):
+        # Called under the scheduler lock, before launching workers. Never delete
+        # files that capture, rendering, NAS or FTP is currently using.
+        if now<self.next_retention: return 0
+        if self.transfer_pending or any(job and not job.done() for job in
+                (self.capture_job,self.render_job,self.archive_job,self.transfer_job)):
+            return 0
+        self.next_retention=now+60
+        days=self.global_settings()['retentionDays']
+        self.last_usage=(0,0)
+        candidates=self.rows("SELECT * FROM projects WHERE status='finished' AND export=0 ORDER BY COALESCE(ends,started),started,id")
+        deleted=0
+        for project in candidates:
+            if days:
+                if (project['ends'] if project['ends'] is not None else project['started'])>now-days*86400: break
+            elif self.enough_space(32*1024**2):
+                break
+            try:
+                self._action_locked({'action':'delete','project':project['id']},now)
+                deleted+=1
+            except (OSError,ValueError):
+                # A failed deletion is not a reason to erase newer recordings.
+                break
+        self.enough_space()
+        return deleted
 
     def capture_input(self, channel):
         # Validate freshness even when the original source is used; a stopped
@@ -444,7 +489,7 @@ class Service:
         path=self.root/pid/'ffmpeg-progress.txt'
         path.write_text('')
         self.processing[pid]=(phase,max(duration,0.001),path)
-        return ['-progress',str(path),'-nostats']
+        return [*ffmpeg_progress_options(),'-stats_period','0.25','-progress',str(path),'-nostats']
 
     def progress(self,pid):
         job=self.processing.get(pid)
@@ -473,7 +518,7 @@ class Service:
                 for index,f in enumerate(frames): os.symlink(f['path'],work/f'{index:06d}.jpg')
                 target=folder/f'segment-{seq:06d}.ts'; tmp=folder/f'.segment-{seq:06d}.ts'
                 run(['ffmpeg','-nostdin','-v','error',*self.progress_args(p['id'],'Bilder verarbeiten',len(frames)/s['fps']),'-framerate',str(s['fps']),'-i',str(work/'%06d.jpg'),'-frames:v',str(len(frames)),
-                     '-an','-c:v','libx264','-preset','veryfast',*(['-b:v',str(s['sourceBitrate'])] if s.get('sourceBitrate') else ['-crf','23']),'-pix_fmt','yuv420p','-threads','1','-g',str(s['fps']),'-f','mpegts','-y',str(tmp)],180)
+                     '-an','-c:v','libx264','-preset','veryfast','-crf','18','-pix_fmt','yuv420p','-threads','1','-g',str(s['fps']*10),'-f','mpegts','-y',str(tmp)],180)
                 # Very short first previews can otherwise be misdetected as MPEG-PS.
                 # Valid MPEG-TS null packets guarantee enough sync bytes for probing.
                 with tmp.open('ab') as output:
@@ -603,6 +648,7 @@ class Service:
     def _tick_locked(self,now=None):
         now=time.time() if now is None else now
         self.schedule(now)
+        self.cleanup_retention(now)
         self.schedule_transfer(now)
         if now>=self.next_archive and not self.transfer_pending and (not self.transfer_job or self.transfer_job.done()) and (not self.archive_job or self.archive_job.done()):
             self.next_archive=now+60

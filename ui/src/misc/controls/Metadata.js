@@ -20,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
 function init(settings) {
 	const initSettings = {
 		name: 'Livestream',
-		description: 'Live from earth. Powered by datarhei Restreamer.',
+		description: 'Live from earth. Powered by Vortex.',
 		author: {},
 		...settings,
 	};

@@ -188,7 +188,7 @@ function AboutModal({ open = false, onClose = () => {} }) {
 						<Typography>
 							<strong>Repo</strong>:{' '}
 							<Link color="secondary" target="_blank" href={Version.Repository}>
-								github.com/glatzkopf94/restreamer-nistkastenlivestream
+								github.com/glatzkopf94/vortex
 							</Link>
 						</Typography>
 						<Typography>

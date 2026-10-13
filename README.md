@@ -1,4 +1,4 @@
-# Vortex 1.5 Beta / 0.3.0-dev24
+# Vortex 1.5 Beta / 0.3.0-dev25
 
 Inoffizieller Fork des datarhei Restreamers fuer Nistkasten-Livestreams,
 hochaufgeloeste HEVC-/H.265-Kameras, aktuelle FFmpeg-Komponenten, frei
@@ -10,14 +10,14 @@ Quellrepository und Container-Image:
 - `https://github.com/glatzkopf94/vortex`
 - `ghcr.io/glatzkopf94/restreamer-nistkastenlivestream`
 
-Das Release erweitert den Stand **Test 21 / dev23** um die gezielte
-Zeitraffer-Aktivierung pro Kanal. Alle Änderungen stehen im [Changelog](CHANGELOG.md).
+Das Release übernimmt die lokalen **Tests 22–25** auf dev24: Zeitraffer-Aufbewahrung,
+Bildqualität, Fortschrittsanzeigen und Vortex-Design. Alle Änderungen stehen im [Changelog](CHANGELOG.md).
 
 Neu in 1.5: Tages- und Saisonzeitraffer, private und öffentliche Vorschauen,
 MP4-Export, FTP/FTPS-Ablage, Speicheranzeige, Cache-/RAM-Korrekturen und Schutz
 der konfigurierten DVR-Haltezeit. Anleitung: [Zeitraffer](TIMELAPSE.md).
 
-Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev24`
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev25`
 veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
 bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
 verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und
@@ -66,8 +66,8 @@ lokaler Build bleibt mit `./build-local.sh` moeglich.
 ## Installation
 
 ```bash
-unzip -o vortex-0.3.0-dev24.zip
-cd vortex-0.3.0-dev24
+unzip -o vortex-0.3.0-dev25.zip
+cd vortex-0.3.0-dev25
 chmod 0755 install.sh status.sh uninstall.sh tests/smoke-test.sh
 ./install.sh
 ```
@@ -391,11 +391,11 @@ mit der technischen Version startet Build, Tests, GHCR-Push und die Erstellung
 des kleinen Installations-ZIPs:
 
 ```bash
-git tag v0.3.0-dev24
-git push origin v0.3.0-dev24
+git tag v0.3.0-dev25
+git push origin v0.3.0-dev25
 ```
 
-Das Multiarch-Image erhaelt die Tags `0.3.0-dev24` und `1.5-beta`. Beide
+Das Multiarch-Image erhaelt die Tags `0.3.0-dev25` und `1.5-beta`. Beide
 enthalten `linux/amd64` und `linux/arm64`. Nach dem ersten Lauf
 muss das Paket auf GitHub unter `Packages -> Package settings -> Change
 visibility` einmalig auf `Public` gestellt werden, damit der Installer ohne
@@ -446,7 +446,7 @@ Details zu Fremdkomponenten und Lizenzen stehen in
 
 ## Status
 
-Version 0.3.0-dev24 / Vortex 1.5 Beta ist eine Entwicklungsvorschau. Der
+Version 0.3.0-dev25 / Vortex 1.5 Beta ist eine Entwicklungsvorschau. Der
 offizielle Produktivcontainer bleibt unberuehrt. Vor einem breiten
 Produktiveinsatz werden ein mehrtaegiger Dauertest, Browserpruefungen und ein
 Wiederherstellungstest der Konfigurationssicherung empfohlen.

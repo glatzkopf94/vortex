@@ -1,7 +1,7 @@
 # Vortex installieren
 
 Dieses Installationspaket laedt das fertig gebaute AMD64-/ARM64-Docker-Image
-`ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev24`.
+`ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev25`.
 FFmpeg, Core und UI werden auf dem Zielserver nicht mehr kompiliert.
 
 ## Installation oder Update
@@ -9,8 +9,8 @@ FFmpeg, Core und UI werden auf dem Zielserver nicht mehr kompiliert.
 Als `root` ausfuehren:
 
 ```bash
-unzip -o vortex-0.3.0-dev24.zip
-cd vortex-0.3.0-dev24
+unzip -o vortex-0.3.0-dev25.zip
+cd vortex-0.3.0-dev25
 chmod 0755 install.sh status.sh uninstall.sh tests/smoke-test.sh
 ./install.sh
 ```
@@ -79,4 +79,4 @@ auf dieselbe Zeitrafferdatenbank zugreifen lassen.
 
 Der bisherige Imagepfad und das Legacy-ZIP sind absichtlich weiter vorhanden,
 damit Updates aus dev22 funktionieren. Das Image ist zusätzlich unter
-`ghcr.io/glatzkopf94/vortex:0.3.0-dev24` verfügbar.
+`ghcr.io/glatzkopf94/vortex:0.3.0-dev25` verfügbar.

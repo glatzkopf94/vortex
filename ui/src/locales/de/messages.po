@@ -727,8 +727,8 @@ msgid "Custom framerate"
 msgstr "Individuelle Bildfrequenz"
 
 #: src/views/Settings.js:1449
-msgid "Custom JSON config for datarhei Core."
-msgstr "Individuelle JSON Konfiguration für den datarhei Core."
+msgid "Custom JSON config for Vortex."
+msgstr "Individuelle JSON Konfiguration für Vortex."
 
 #: src/misc/coders/settings/Video.js:62
 msgid "Custom keyframe interval"
@@ -3241,8 +3241,8 @@ msgid "Strict"
 msgstr "Streng"
 
 #: src/views/Playersite.js:391
-msgid "Support datarhei Vortex"
-msgstr "Unterstütze datarhei Vortex"
+msgid "Support Vortex"
+msgstr "Unterstütze Vortex"
 
 #: src/views/Edit/Sources/Network.js:958
 #: src/views/Edit/Wizard/Sources/Network.js:116

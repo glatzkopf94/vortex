@@ -1518,7 +1518,7 @@ export default function Settings({ restreamer = null }) {
 									/>
 									<ErrorBox configvalue="coreconfig" messages={$tabs.service.messages} />
 									<Typography variant="caption">
-										<Trans>Custom JSON config for datarhei Core.</Trans>
+										<Trans>Custom JSON config for Vortex.</Trans>
 									</Typography>
 								</Grid>
 							</Grid>
@@ -1824,7 +1824,7 @@ export default function Settings({ restreamer = null }) {
                             {$tab === 'ftp-upload' && <FtpUpload restreamer={restreamer} />}
                         </TabPanel>
                         <TabPanel value={$tab} index="timelapse" className="panel">
-							{$tab === 'timelapse' && <Timelapse restreamer={restreamer} />}
+							{$tab === 'timelapse' && <Timelapse restreamer={restreamer} onOpenFTP={() => handleChangeTab(null, 'ftp-upload')} />}
 						</TabPanel>
 						<TabPanel value={$tab} index="dvr" className="panel">
 							<Grid container spacing={2}>

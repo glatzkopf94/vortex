@@ -6,7 +6,7 @@ data = {
 	version: "1.2.0",
 	meta: {
 		name: 'Livestream 1',
-		description: 'Live from earth. Powered by datarhei/restreamer.',
+		description: 'Live from earth. Powered by Vortex.',
 		author: {
 			name: '',
 			description: '',

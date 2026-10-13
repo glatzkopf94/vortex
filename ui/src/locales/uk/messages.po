@@ -723,7 +723,7 @@ msgid "Custom framerate"
 msgstr "Кастомна частота кадрів"
 
 #: src/views/Settings.js:1449
-msgid "Custom JSON config for datarhei Core."
+msgid "Custom JSON config for Vortex."
 msgstr "Кастомний JSON-конфіг для ядра datarhei."
 
 #: src/misc/coders/settings/Video.js:62
@@ -3233,7 +3233,7 @@ msgid "Strict"
 msgstr ""
 
 #: src/views/Playersite.js:391
-msgid "Support datarhei Vortex"
+msgid "Support Vortex"
 msgstr "Підтримка даташей Vortex"
 
 #: src/views/Edit/Sources/Network.js:958

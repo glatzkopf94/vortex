@@ -159,6 +159,49 @@ class TimelapseTests(unittest.TestCase):
         self.assertEqual(saved['sourceBitrate'],8192000)
         self.assertEqual(saved['sourceHeight'],1920)
 
+    def test_quality_independent_of_initial_bandwidth_and_even_timestamps(self):
+        pid=self.project(width=640,sourceBitrate=1000)
+        folder=self.service.root/pid;folder.mkdir(exist_ok=True)
+        subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','testsrc2=size=640x360:rate=25','-frames:v','60','-threads','1','-q:v','2',str(folder/'%06d.jpg')],check=True)
+        for i in range(1,61):
+            f=folder/f'{i:06d}.jpg'
+            self.service.write('INSERT INTO frames VALUES(?,?,?,?)',(pid,1800000000+i*120,str(f),f.stat().st_size))
+        self.service.write('UPDATE projects SET export=1 WHERE id=?',(pid,))
+        p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
+        import service as module
+        actual_run=module.run
+        with patch('service.run',wraps=actual_run) as run:
+            self.service.render(p)
+        command=run.call_args_list[0].args[0]
+        self.assertNotIn('-b:v',command)
+        self.assertEqual(command[command.index('-crf')+1],'18')
+        self.assertEqual(command[command.index('-g')+1],'250')
+        output=folder/'export.mp4'
+        self.assertTrue(output.exists())
+        result=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_frames','-show_entries','frame=best_effort_timestamp_time','-of','json',str(output)]))
+        times=[float(f['best_effort_timestamp_time']) for f in result['frames']]
+        self.assertEqual(len(times),60)
+        for a,b in zip(times,times[1:]):self.assertAlmostEqual(b-a,1/25,places=5)
+
+    def test_patched_ffmpeg_progress_mode_and_live_percent(self):
+        from service import ffmpeg_progress_options
+        ffmpeg_progress_options.cache_clear()
+        try:
+            with patch('service.subprocess.run',return_value=subprocess.CompletedProcess([],0,stdout=b'-jsonstats          print JSON progress report\n')):
+                self.assertEqual(ffmpeg_progress_options(),['-jsonstats','0'])
+                pid=self.project()
+                folder=self.service.root/pid;folder.mkdir(exist_ok=True)
+                args=self.service.progress_args(pid,'Bilder verarbeiten',10)
+                self.assertIn('-jsonstats',args)
+                (folder/'ffmpeg-progress.txt').write_text('out_time_us=2500000\nprogress=continue\n')
+                self.assertEqual(self.service.progress(pid)['percent'],25)
+                (folder/'ffmpeg-progress.txt').write_text('out_time_us=7500000\nprogress=continue\n')
+                self.assertEqual(self.service.progress(pid)['percent'],75)
+            ffmpeg_progress_options.cache_clear()
+            with patch('service.subprocess.run',return_value=subprocess.CompletedProcess([],0,stdout=b'-stats_period time\n')):
+                self.assertEqual(ffmpeg_progress_options(),[])
+        finally:ffmpeg_progress_options.cache_clear()
+
     def test_first_preview_waits_for_two_images(self):
         pid=self.project()
         self.service.write("UPDATE projects SET status='paused' WHERE id=?",(pid,))
@@ -319,6 +362,62 @@ class TimelapseTests(unittest.TestCase):
         self.service.render(p)
         self.assertTrue(poster.read_bytes().startswith(b'\xff\xd8'))
 
+    def finished_recording(self, ended, payload=65536):
+        pid=self.project()
+        self.service.write("UPDATE projects SET status='finished',ends=?,export=0 WHERE id=?",(ended,pid))
+        folder=self.service.root/pid;folder.mkdir(exist_ok=True)
+        (folder/'export.mp4').write_bytes(b'x'*payload)
+        return pid
+
+    def test_retention_days_delete_only_expired_finished_projects(self):
+        now=1800000000
+        old=self.finished_recording(now-8*86400)
+        middle=self.finished_recording(now-4*86400)
+        young=self.finished_recording(now-2*86400)
+        fresh=self.finished_recording(now-3600)
+        paused=self.project();self.service.action({'action':'pause','project':paused})
+        for days,expected in [(7,old),(3,middle),(1,young)]:
+            self.service.action({'action':'configure_retention','days':days})
+            self.assertEqual(self.service.cleanup_retention(now),1)
+            self.assertFalse((self.service.root/expected).exists())
+        self.assertTrue((self.service.root/fresh).exists())
+        self.assertEqual(self.service.rows('SELECT status FROM projects WHERE id=?',(paused,))[0]['status'],'paused')
+        self.service.close()
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0,quota=1024**3)
+        self.assertEqual(self.service.global_settings()['retentionDays'],1)
+        for bad in [True,2,-1,'7',None]:
+            with self.assertRaises(ValueError):self.service.action({'action':'configure_retention','days':bad})
+
+    def test_never_retention_reclaims_oldest_only_when_quota_needs_space(self):
+        now=1800000000
+        old=self.finished_recording(now-8*86400)
+        newer=self.finished_recording(now-4*86400)
+        self.assertEqual(self.service.cleanup_retention(now),0)
+        usage=sum(p.stat().st_size for p in self.service.root.rglob('*') if p.is_file())
+        self.service.quota=usage+32*1024**2-1
+        self.service.next_retention=0
+        self.assertEqual(self.service.cleanup_retention(now),1)
+        self.assertFalse((self.service.root/old).exists())
+        self.assertTrue((self.service.root/newer).exists())
+
+    def test_retention_reserve_and_busy_workers_protect_files(self):
+        from concurrent.futures import Future
+        from collections import namedtuple
+        Disk=namedtuple('Disk','total used free')
+        now=1800000000;old=self.finished_recording(now-8*86400)
+        self.service.capture_job=Future()
+        self.assertEqual(self.service.cleanup_retention(now),0)
+        self.service.capture_job.set_result(None)
+        self.service.transfer_pending=True
+        self.assertEqual(self.service.cleanup_retention(now),0)
+        self.service.transfer_pending=False
+        pending=self.finished_recording(now-10*86400)
+        self.service.write('UPDATE projects SET export=1 WHERE id=?',(pending,))
+        with patch('service.shutil.disk_usage',return_value=Disk(100,99,1)):
+            self.assertEqual(self.service.cleanup_retention(now),1)
+        self.assertFalse((self.service.root/old).exists())
+        self.assertTrue((self.service.root/pending).exists())
+
     def test_channel_activation_is_explicit_persistent_and_preserves_settings(self):
         self.assertFalse(self.service.status()['channels'][0]['active'])
         self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':True})
@@ -382,6 +481,10 @@ class TimelapseTests(unittest.TestCase):
                 self.assertEqual(ctx.exception.code,404)
             response=urlopen(Request(base+'/admin/project/'+pid+'/export.mp4',headers={'Range':'bytes=0-9'}))
             self.assertEqual(response.status,206);self.assertEqual(len(response.read()),10)
+            from urllib.parse import unquote
+            filename=self.service.status()['projects'][0]['filename']
+            self.assertEqual(unquote(response.headers['Content-Disposition'].split("filename*=UTF-8''")[1]),filename)
+            self.assertTrue(filename.startswith('Test_'))
             self.service.archive(self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0])
             self.assertTrue((self.service.root/pid/'export.mp4').exists())
             self.assertIn('NAS nicht',self.service.status()['projects'][0]['nas'])

@@ -405,7 +405,7 @@ export default function Playersite({ restreamer = null }) {
 								</Grid>
 								<Grid item xs={12}>
 									<Checkbox
-										label={<Trans>Support datarhei Vortex</Trans>}
+										label={<Trans>Support Vortex</Trans>}
 										checked={$settings.support}
 										disabled={!$settings.playersite}
 										onChange={handleChange('support')}

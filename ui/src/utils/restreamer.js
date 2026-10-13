@@ -1962,7 +1962,7 @@ class Restreamer {
 
 		// 3.1 Injects a metadata link as title
 		const metadata = `${this.GetPublicHTTPAddress()}/${channel.channelid}/oembed.json`;
-		const metadata_options = ['-metadata', `title=${metadata}`, '-metadata', 'service_provider=datarhei-Restreamer'];
+		const metadata_options = ['-metadata', `title=${metadata}`, '-metadata', 'service_provider=Vortex'];
 		output.options.push(...metadata_options);
 
 		// Manifest versions
@@ -2692,7 +2692,7 @@ class Restreamer {
 			playersite: false,
 			channelid: 'current',
 			channel_list: this.ListChannels().map((c) => c.channelid),
-			title: 'restreamer',
+			title: 'Vortex',
 			share: true,
 			support: true,
 			chromecast: false,

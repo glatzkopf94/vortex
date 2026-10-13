@@ -8,7 +8,8 @@ import signal
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, quote
+import transfer
 from service import Service, UUID
 
 
@@ -80,7 +81,9 @@ def make_handler(service):
                     self.send_header('Content-Type','image/jpeg' if filename.endswith('.jpg') else ('video/mp4' if filename.endswith('.mp4') else 'video/mp2t'))
                     self.send_header('Cache-Control','no-store'); self.send_header('Accept-Ranges','bytes')
                     if status==206: self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
-                    if filename=='export.mp4': self.send_header('Content-Disposition',f'attachment; filename="Zeitraffer-{p["label"] if p["day"] else pid}.mp4"')
+                    if filename=='export.mp4':
+                        names=transfer.filenames(service.rows('SELECT * FROM projects'),{c['id']:c['name'] for c in service.known_channels()})
+                        self.send_header('Content-Disposition', "attachment; filename=\"Zeitraffer.mp4\"; filename*=UTF-8''"+quote(names[pid],safe=''))
                     self.send_header('Content-Length',str(end-start+1)); self.end_headers()
                     if self.command=='HEAD': return
                     f.seek(start); remaining=end-start+1

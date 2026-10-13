@@ -1,8 +1,10 @@
 # Zeitraffer in Vortex 1.5 Beta
 
-Unter **System → Zeitraffer** einen Kanal auswählen und seine Einstellungen
-speichern. Der Dienst läuft im Release automatisch; er legt erst nach einer
-Kanalkonfiguration Aufnahmen an. Einstellungen und Projekte überstehen Neustarts.
+Unter **System → Zeitraffer** oben die gewünschten Kanäle per Haken aktivieren.
+Die Haken werden sofort gespeichert. Nur diese Kanäle erscheinen anschließend
+in der Parameterauswahl und zeigen den Zeitraffer-Button im öffentlichen Player.
+Dort einen Kanal auswählen und seine Einstellungen speichern. Der Dienst läuft im Release automatisch; er legt erst für aktivierte und
+entsprechend konfigurierte Kanäle Aufnahmen an. Einstellungen und Projekte überstehen Neustarts.
 
 ## Aufnehmen
 
@@ -88,3 +90,8 @@ FTP-Kopiermodus. Die historische Testkonfiguration steht in
 Die lokale Test-21-Compose-Instanz verwendet eigene Volumes. Eine Veröffentlichung
 oder Standardinstallation übernimmt diese nicht automatisch. Vor einer
 Umstellung ihre drei bestehenden Volumezuordnungen prüfen und explizit erhalten.
+
+Deaktivieren erhält Einstellungen und Aufnahmen, verhindert weitere geplante
+Einzelbilder und sperrt die öffentliche Zeitraffervorschau. Bereits konfigurierte
+Kanäle bleiben beim Update aktiv; neue/unbenutzte Kanäle starten deaktiviert.
+Offene Player übernehmen Änderungen nach spätestens etwa 30 Sekunden.

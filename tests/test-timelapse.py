@@ -319,6 +319,42 @@ class TimelapseTests(unittest.TestCase):
         self.service.render(p)
         self.assertTrue(poster.read_bytes().startswith(b'\xff\xd8'))
 
+    def test_channel_activation_is_explicit_persistent_and_preserves_settings(self):
+        self.assertFalse(self.service.status()['channels'][0]['active'])
+        self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':True})
+        self.assertTrue(self.service.status()['channels'][0]['active'])
+        pid=self.project(interval=45,public=True)
+        self.frame(pid,1800000000)
+        before=self.service.rows('SELECT settings FROM channels WHERE id=?',(CHANNEL,))[0]['settings']
+        self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':False})
+        self.assertEqual(self.service.status(CHANNEL,public=True),{'active':False,'projects':[]})
+        with patch.object(self.service,'capture') as capture:
+            self.service.tick(1800003600)
+            capture.assert_not_called()
+        self.assertEqual(self.service.rows('SELECT settings FROM channels WHERE id=?',(CHANNEL,))[0]['settings'],before)
+        self.assertTrue(self.service.rows('SELECT * FROM frames WHERE project=?',(pid,)))
+        self.service.close()
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0,quota=1024**3)
+        self.assertFalse(self.service.channel_active(CHANNEL))
+        self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':True})
+        self.assertEqual(len(self.service.status(CHANNEL,public=True)['projects']),1)
+        self.assertEqual(self.service.rows('SELECT settings FROM channels WHERE id=?',(CHANNEL,))[0]['settings'],before)
+
+    def test_legacy_channel_migration_and_disabled_daily_schedule(self):
+        self.service.configure(CHANNEL,{**DEFAULT,'mode':'daily','interval':45})
+        self.service.close()
+        import sqlite3
+        with sqlite3.connect(self.root/'state/state.sqlite') as db:
+            db.execute('ALTER TABLE channels DROP COLUMN active')
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0,quota=1024**3)
+        self.assertTrue(self.service.channel_active(CHANNEL))
+        self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':False})
+        self.service.schedule(1800000000)
+        self.assertEqual(self.service.rows('SELECT * FROM projects'),[])
+        for bad in ['yes',1,None]:
+            with self.assertRaises(ValueError):self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':bad})
+        with self.assertRaises(ValueError):self.service.action({'action':'set_channel_active','channel':'unknown','active':True})
+
     def test_private_public_authorization_ranges_and_nas_unavailable(self):
         pid=self.project(width=640,nas=True)
         self.frame(pid,1800000000); self.service.action({'action':'export','project':pid})
@@ -337,6 +373,13 @@ class TimelapseTests(unittest.TestCase):
             self.assertEqual(response.headers['Content-Type'],'image/jpeg')
             self.assertTrue(response.read().startswith(b'\xff\xd8'))
             self.assertIn(b'#EXT-X-ENDLIST',urlopen(base+'/public/project/'+pid+'/index.m3u8').read())
+            availability=base+'/public/channel/'+CHANNEL+'/availability'
+            self.assertEqual(json.load(urlopen(availability)),{'active':True})
+            self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':False})
+            self.assertEqual(json.load(urlopen(availability)),{'active':False})
+            for filename in ['poster.jpg','index.m3u8','timeline.json','segment-000000.ts']:
+                with self.assertRaises(HTTPError) as ctx:urlopen(base+'/public/project/'+pid+'/'+filename)
+                self.assertEqual(ctx.exception.code,404)
             response=urlopen(Request(base+'/admin/project/'+pid+'/export.mp4',headers={'Range':'bytes=0-9'}))
             self.assertEqual(response.status,206);self.assertEqual(len(response.read()),10)
             self.service.archive(self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0])

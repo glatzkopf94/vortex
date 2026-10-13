@@ -46,7 +46,7 @@ class PlayerUITest(unittest.TestCase):
             self.assertIn("document.createElement('div')", result)
             self.assertNotIn('<div id="lc-activation-hint"', result)
             self.assertNotIn("var oldPlayerCode = true;", result)
-            self.assertIn("video-js-skin.min.css?nkl=1.5-beta-dev23", result)
+            self.assertIn("video-js-skin.min.css?nkl=1.5-beta-dev24", result)
             self.assertEqual(custom.read_text(), "<html>Custom page</html>")
             self.assertEqual((data / "player/videojs/dist/video-js-skin.min.css").read_text(), "new skin")
             migration.migrate(data, ui)

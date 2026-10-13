@@ -36,6 +36,10 @@ def make_handler(service):
                 if path=='/admin/status': return self.reply(200,service.status())
                 if path=='/public/player.js': return self.reply(200,(Path(__file__).parent/'player.js').read_bytes(),'application/javascript')
                 if path=='/public/player.css': return self.reply(200,(Path(__file__).parent/'player.css').read_bytes(),'text/css')
+                match=re.fullmatch(r'/public/channel/([^/]+)/availability',path)
+                if match:
+                    if not UUID.fullmatch(match[1]): return self.reply(404,{'message':'Not found'})
+                    return self.reply(200,{'active':service.channel_active(match[1])})
                 match=re.fullmatch(r'/public/channel/([^/]+)',path)
                 if match:
                     if not UUID.fullmatch(match[1]): return self.reply(404,{'message':'Not found'})
@@ -44,7 +48,7 @@ def make_handler(service):
                 if not match or not UUID.fullmatch(match[2]): return self.reply(404,{'message':'Not found'})
                 access,pid,filename=match.groups()
                 projects=service.rows('SELECT * FROM projects WHERE id=?',(pid,))
-                if not projects or (access=='public' and not json.loads(projects[0]['settings'])['public']): return self.reply(404,{'message':'Not found'})
+                if not projects or (access=='public' and (not service.channel_active(projects[0]['channel']) or not json.loads(projects[0]['settings'])['public'])): return self.reply(404,{'message':'Not found'})
                 p=projects[0]; s=json.loads(p['settings'])
                 if filename=='timeline.json': return self.reply(200,service.timeline(p))
                 if filename=='index.m3u8':

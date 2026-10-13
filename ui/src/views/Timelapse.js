@@ -26,12 +26,17 @@ export default function Timelapse({restreamer}) {
     try {setData(await call());} catch(e){setError(String(e.message));}
   },[call]);
   React.useEffect(()=>{refresh(); const id=setInterval(refresh,2000);return()=>clearInterval(id);},[refresh]);
-  React.useEffect(()=>{if(data&&channel&&!form){const saved=data.channels.find(c=>c.id===channel);if(saved)setForm({...saved.settings});else setChannel('');}},[data,channel,form]);
+  React.useEffect(()=>{
+    if(!data||!channel)return;
+    const saved=data.channels.find(c=>c.id===channel&&c.active);
+    if(!saved){setChannel('');setForm(null);try{sessionStorage.removeItem('nkl-timelapse-channel');}catch{}}
+    else if(!form)setForm({...saved.settings});
+  },[data,channel,form]);
   const choose=(id)=>{try{sessionStorage.setItem('nkl-timelapse-channel',id);}catch{}setChannel(id);setForm({...data.channels.find(c=>c.id===id).settings});setNotice('');};
   const change=(key,value)=>{setForm(previous=>({...previous,[key]:value,...(key==='mode'&&value==='season'?{interval:Math.max(30,previous.interval)}:{})}));setNotice('Ungespeicherte Änderungen – bitte Einstellungen speichern.');};
   async function action(body) {
     setBusy(true);setError('');
-    try {const result=await call(body);await refresh();success(body.action==='delete_finished'?`${result.deleted} abgeschlossene ${body.mode==='daily'?'Tages':'Saison'}zeitraffer lokal gelöscht.`:({configure_global:'Globale Overlay-Einstellung gespeichert. Gilt für die nächsten Einzelbilder aller Kanäle.',configure_transfer:'Externe Ablage gespeichert.',transfer_now:'Übertragung beauftragt.',configure:'Einstellungen gespeichert. Änderungen an Auflösung/FPS gelten für das nächste Projekt.',start:'Saisonaufnahme gestartet.',pause:'Aufnahme pausiert.',resume:'Aufnahme fortgesetzt.',stop:'Aufnahme beendet; Abschlussvideo wird erstellt.',export:'MP4-Aktualisierung beauftragt.',publish:'Veröffentlichung geändert.',delete:'Lokales Projekt gelöscht.'})[body.action] || 'Änderung gespeichert.');return result;}catch(e){setError(String(e.message));}
+    try {const result=await call(body);await refresh();success(body.action==='delete_finished'?`${result.deleted} abgeschlossene ${body.mode==='daily'?'Tages':'Saison'}zeitraffer lokal gelöscht.`:({set_channel_active:'Kanalauswahl gespeichert.',configure_global:'Globale Overlay-Einstellung gespeichert. Gilt für die nächsten Einzelbilder aller Kanäle.',configure_transfer:'Externe Ablage gespeichert.',transfer_now:'Übertragung beauftragt.',configure:'Einstellungen gespeichert. Änderungen an Auflösung/FPS gelten für das nächste Projekt.',start:'Saisonaufnahme gestartet.',pause:'Aufnahme pausiert.',resume:'Aufnahme fortgesetzt.',stop:'Aufnahme beendet; Abschlussvideo wird erstellt.',export:'MP4-Aktualisierung beauftragt.',publish:'Veröffentlichung geändert.',delete:'Lokales Projekt gelöscht.'})[body.action] || 'Änderung gespeichert.');return result;}catch(e){setError(String(e.message));}
     finally{setBusy(false);}
   }
   async function download(project) {
@@ -49,6 +54,14 @@ export default function Timelapse({restreamer}) {
     <Typography>Eigene Aufnahme und Verarbeitung, unabhängig vom DVR. Eine Vorschau entsteht ab zwei Bildern und wird bei neuen Bildern etwa alle fünf Minuten ergänzt. Fehlzeiten werden übersprungen, nicht mit alten Bildern aufgefüllt.</Typography>
     {notice.startsWith('Ungespeicherte')&&<Typography>{notice}</Typography>}
     {data&&<>
+      <Box sx={{p:2,border:'1px solid',borderColor:'divider',borderRadius:1}}>
+        <Typography variant="h3" id="timelapse-channels-label">Zeitraffer für Kanäle aktivieren</Typography>
+        <Box role="group" aria-labelledby="timelapse-channels-label" sx={{display:'flex',flexDirection:'column',maxHeight:320,overflowY:'auto',mt:1}}>
+          {data.channels.map(c=><FormControlLabel key={c.id} control={<Checkbox checked={!!c.active} disabled={busy} onChange={e=>action({action:'set_channel_active',channel:c.id,active:e.target.checked})}/>} label={c.name}/>)}
+          {!data.channels.length&&<Typography>Keine Kanäle vorhanden.</Typography>}
+        </Box>
+        <Typography variant="body2">Haken werden sofort gespeichert. Nur aktivierte Kanäle stehen unten zur Auswahl und zeigen den Zeitraffer-Button im Player. Deaktivieren stoppt neue Einzelbilder; Einstellungen und vorhandene Aufnahmen bleiben erhalten.</Typography>
+      </Box>
       <FormControlLabel control={<Checkbox disabled={busy} checked={!!data.globalSettings?.includeBurnedOverlays} onChange={e=>action({action:'configure_global',includeBurnedOverlays:e.target.checked})}/>} label="Eingebrannte Vortex-Overlays im Zeitraffer übernehmen (alle Kanäle)"/>
       <Typography variant="body2">Ausgeschaltet: Bei Kanälen mit eingebrannten Vortex-Overlays wird pro Einzelbild kurz die ursprüngliche RTSP-/HTTP-Quelle abgerufen. Kameraeigene Einblendungen bleiben erhalten. Eingeschaltet: Bild aus dem laufenden Stream inklusive eingebrannter Overlays. Browser-Player-Overlays werden nicht übernommen. Gilt für neue Bilder, auch in laufenden Aufnahmen.</Typography>
       <Typography>Speicherplatz · Zeitraffer: {(data.storageBytes/1073741824).toFixed(2)} GB / {(data.quotaBytes/1073741824).toFixed(1)} GB. Auf dem Datenträger frei: {(data.diskFreeBytes/1073741824).toFixed(1)} GB von {(data.diskTotalBytes/1073741824).toFixed(1)} GB. Freie Reserve: {(data.reserveBytes/1073741824).toFixed(1)} GB.</Typography>
@@ -60,8 +73,8 @@ export default function Timelapse({restreamer}) {
           return <Box key={mode}><Typography variant="subtitle2">{label}</Typography><Button variant="outlined" color="secondary" disabled={busy||!count} onClick={()=>{if(window.confirm(`${count} abgeschlossene ${label} über ALLE Kanäle endgültig lokal löschen? Die andere Betriebsart, laufende/pausierte Projekte und NAS-Kopien bleiben erhalten.`))action({action:'delete_finished',mode});}}>Fertige Zeitraffer löschen ({count})</Button></Box>;
         })}
       </Box>
-      <TextField select label="Kanal" value={channel} onChange={e=>choose(e.target.value)} fullWidth>{data.channels.map(c=><MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField>
-      {form&&<>
+      <TextField select label="Kanal" value={data.channels.some(c=>c.id===channel&&c.active)?channel:''} disabled={!data.channels.some(c=>c.active)} onChange={e=>choose(e.target.value)} fullWidth>{data.channels.filter(c=>c.active).map(c=><MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField>
+      {form&&data.channels.some(c=>c.id===channel&&c.active)&&<>
         {select('mode','Betriebsart',[['daily','Tageszeitraffer'],['season','Saison / manuell']])}
         <Box sx={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:2}}>
           {form.mode==='daily'?number('interval','Bildintervall in Sekunden',{min:15,max:86400,step:1}):<TextField label="Bildintervall in Minuten" type="text" inputProps={{inputMode:'decimal'}} defaultValue={form.interval/60} key={'minutes-'+channel} onBlur={e=>{const minutes=Number(e.target.value.replace(',','.'));change('interval',Math.round(minutes*60));}} helperText="0,5 bis 1440 Minuten (ein Bild pro Tag)." fullWidth/>}

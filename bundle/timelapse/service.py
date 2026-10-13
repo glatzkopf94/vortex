@@ -86,6 +86,9 @@ class Service:
         CREATE TABLE IF NOT EXISTS timeline(project TEXT, segment INTEGER, slots TEXT, PRIMARY KEY(project,segment));
         CREATE TABLE IF NOT EXISTS segments(project TEXT, number INTEGER, path TEXT, frames INTEGER, bytes INTEGER, created REAL, PRIMARY KEY(project,number));
         ''')
+        # Keep previously configured channels active; unknown channels remain off.
+        if 'active' not in {row['name'] for row in self.db.execute('PRAGMA table_info(channels)')}:
+            self.db.execute('ALTER TABLE channels ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
         self.db.commit()
         self.capture_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.render_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -151,6 +154,21 @@ class Service:
             return result
         except (OSError,ValueError): return []
 
+    def channel_active(self, channel):
+        rows=self.rows('SELECT active FROM channels WHERE id=?',(channel,))
+        return bool(rows and rows[0]['active'])
+
+    def set_channel_active(self, channel, active):
+        if channel not in {c['id'] for c in self.known_channels()}: raise ValueError('Unbekannter Kanal')
+        if not isinstance(active,bool): raise ValueError('Boolescher Wert erwartet')
+        self.write('INSERT INTO channels(id,settings,active) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET active=excluded.active',
+                   (channel,json.dumps(DEFAULT),int(active)))
+        # Re-enabling resumes at the current time, without counting the disabled
+        # period as failed camera captures. Existing paused projects stay paused.
+        if active:
+            self.write("UPDATE projects SET next=? WHERE channel=? AND status='recording'",(time.time(),channel))
+        return {'active':active}
+
     def configure(self, channel, raw):
         if channel not in {c['id'] for c in self.known_channels()}: raise ValueError('Unbekannter Kanal')
         s=settings(raw)
@@ -182,6 +200,7 @@ class Service:
         now=time.time() if now is None else now
         if not isinstance(request, dict): raise ValueError('Ungueltiger Auftrag')
         action=request.get('action'); channel=request.get('channel')
+        if action=='set_channel_active': return self.set_channel_active(channel,request.get('active'))
         if action=='configure_global':
             value=request.get('includeBurnedOverlays')
             if not isinstance(value,bool): raise ValueError('Boolescher Wert erwartet')
@@ -225,6 +244,7 @@ class Service:
             return {'ok':True}
         if action=='configure': return self.configure(channel,request['settings'])
         if action=='start':
+            if not self.channel_active(channel): raise ValueError('Zeitraffer fuer diesen Kanal ist deaktiviert.')
             rows=self.rows('SELECT settings FROM channels WHERE id=?',(channel,))
             if not rows: raise ValueError('Zuerst Kanaleinstellungen speichern.')
             s=json.loads(rows[0]['settings'])
@@ -274,7 +294,7 @@ class Service:
     def schedule(self, now):
         for channel in self.rows('SELECT * FROM channels'):
             s=json.loads(channel['settings'])
-            if not s['enabled'] or s['mode']!='daily': continue
+            if not channel['active'] or not s['enabled'] or s['mode']!='daily': continue
             today=datetime.fromtimestamp(now,ZoneInfo(s['timezone'])).date()
             self.write('DELETE FROM deleted_days WHERE channel=? AND day<?',(channel['id'],(today-timedelta(days=2)).isoformat()))
             try:
@@ -592,7 +612,7 @@ class Service:
         if not self.capture_job or self.capture_job.done():
             for p in self.rows("SELECT * FROM projects WHERE status='recording' AND next<=? ORDER BY next",(now,)):
                 s=json.loads(p['settings']); channel=self.rows('SELECT settings FROM channels WHERE id=?',(p['channel'],))
-                if not channel or not json.loads(channel[0]['settings'])['enabled']: continue
+                if not self.channel_active(p['channel']) or not channel or not json.loads(channel[0]['settings'])['enabled']: continue
                 missed=max(0,int((now-p['next'])//s['interval']))
                 slot=int(now//s['interval'])*s['interval']
                 # Persist the slot before launching the worker: crash recovery cannot duplicate it.
@@ -639,20 +659,20 @@ class Service:
         for p in project_rows:
             s=json.loads(p['settings'])
             if channel and p['channel']!=channel: continue
-            if public and not s['public']: continue
+            if public and (not self.channel_active(p['channel']) or not s['public']): continue
             segments=self.rows('SELECT SUM(frames) AS n FROM segments WHERE project=?',(p['id'],))
             pending=self.rows('SELECT COUNT(*) AS n FROM frames WHERE project=?',(p['id'],))[0]['n']
             item={k:p[k] for k in ('id','channel','label','status','started','last','ends','next')}
             item.update(frames=(segments[0]['n'] or 0)+pending,previewFrames=segments[0]['n'] or 0, fps=s['fps'])
             if not public: item.update(filename=file_names[p['id']],day=p['day'],settings=s,missed=p['missed'],error=p['error'],exported=p['exported'],exportPending=bool(p['export']),nas=p['nas'],progress=self.progress(p['id']))
             result.append(item)
-        if public: return {'projects':result}
+        if public: return {'active':self.channel_active(channel),'projects':result}
         target=transfer.safe_config(transfer.read_config(self.root))
         try: target_status=json.loads((self.root/'transfer-result.json').read_text())
         except (OSError,ValueError): target_status={'state':'idle'}
         if self.transfer_pending: target_status={'state':'preparing','origin':self.transfer_plan['origin']}
         channels={c['id']:c for c in self.rows('SELECT * FROM channels')}
-        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'settings':json.loads(channels[c['id']]['settings']) if c['id'] in channels else DEFAULT,'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
+        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'active':bool(channels.get(c['id'],{}).get('active',False)),'settings':json.loads(channels[c['id']]['settings']) if c['id'] in channels else DEFAULT,'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
 
     def close(self):
         self.capture_pool.shutdown(wait=True); self.render_pool.shutdown(wait=True); self.archive_pool.shutdown(wait=True); self.transfer_pool.shutdown(wait=True); self.transfer_test_pool.shutdown(wait=True); self.db.close()

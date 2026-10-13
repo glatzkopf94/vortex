@@ -15,9 +15,17 @@ execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i
   path.join(media, 'stream.m3u8')]);
 const template = fs.readFileSync(path.join(root, 'ui/public/_player/videojs/player.html'), 'utf8');
 let restarting = false;
+const activeTimelapse = new Set(["a"]);
+const timelapseRequests=[];
 const server = http.createServer((req, res) => {
   const p = new URL(req.url, 'http://localhost').pathname;
   res.setHeader('Cache-Control', 'no-store');
+  if(p.startsWith('/timelapse/')) {
+    timelapseRequests.push(p);
+    const match=p.match(/^\/timelapse\/channel\/([abc])\/availability$/);
+    if(match){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({active:activeTimelapse.has(match[1])}));}
+    res.statusCode=404;return res.end();
+  }
   if (p === '/') {
     res.setHeader('Content-Type', 'text/html');
     return res.end(['a', 'b', 'c'].map(id => `<iframe src="/${id}.html" width="480" height="270"></iframe>`).join(''));
@@ -52,12 +60,26 @@ const server = http.createServer((req, res) => {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     browser = await chromium.launch({headless:true, executablePath:process.env.NKL_CHROMIUM || undefined, args:['--no-sandbox','--disable-dev-shm-usage']});
     const page = await browser.newPage({viewport:{width:1500,height:500}, locale:'de-DE'});
+    await page.addInitScript(()=>{
+      const original=window.setInterval;
+      window.setInterval=(fn,ms,...args)=>original(fn,ms===30000?200:ms,...args);
+    });
     const errors=[];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     const frame = id => page.frames().find(f => f.url().endsWith(`/${id}.html`));
     for (const id of ['a','b','c']) await frame(id).waitForFunction(() => window.player && player.readyState() >= 0);
     const a=frame('a'), b=frame('b'), c=frame('c');
+    await a.locator('.nkl-timelapse-button').waitFor({state:'attached'});
+    assert.equal(await b.locator('.nkl-timelapse-button').count(),0);
+    assert.equal(await c.locator('.nkl-timelapse-button').count(),0);
+    activeTimelapse.add('b');
+    await b.locator('.nkl-timelapse-button').waitFor({state:'attached'});
+    activeTimelapse.delete('b');
+    await b.locator('.nkl-timelapse-button').waitFor({state:'detached'});
+    assert.equal(await a.locator('.nkl-timelapse-button').count(),1);
+    assert.ok(timelapseRequests.length>0);
+    assert.ok(timelapseRequests.every(p=>p.endsWith('/availability')), 'Live must not fetch previews, lists or media');
     for (let cycle=0; cycle<3; cycle++) {
       for (const [active, stopped] of [[a,b],[b,a]]) {
         await active.locator('.vjs-big-play-button').click();

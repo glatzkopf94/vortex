@@ -887,7 +887,7 @@
 			}
 
 
-			// Local timelapse preview: zero extra requests until this button is clicked.
+			// Only a small availability flag is polled; no preview/media loads before a click.
 			player.ready(function () {
 				if (!player.controlBar || !player.controlBar.el) return;
 				var button = document.createElement('button');
@@ -901,9 +901,37 @@
 				document.head.appendChild(style);
 				var bar = player.controlBar.el();
 				var fullscreen = bar.querySelector('.vjs-fullscreen-control');
-				bar.insertBefore(button, fullscreen || null);
+                var disposed = false;
+                var timelapseActive = false;
+                var request = null;
+                async function updateTimelapseAvailability() {
+                    if (disposed || request) return;
+                    request = new AbortController();
+                    var timeout = window.setTimeout(function(){if(request)request.abort();}, 8000);
+                    try {
+                        var response = await fetch('timelapse/channel/'+encodeURIComponent(playerConfig.channelid)+'/availability', {cache:'no-store',signal:request.signal});
+                        var state = response.ok ? await response.json() : {active:false};
+                        if (disposed) return;
+                        timelapseActive = state.active === true;
+                        if (timelapseActive) {
+                            if (!button.parentNode) bar.insertBefore(button, fullscreen || null);
+                        } else {
+                            if(window.nklTimelapseClose)window.nklTimelapseClose(true);
+                            button.remove();
+                        }
+                    } catch (error) {
+                        if (!disposed) {
+                            timelapseActive = false;
+                            if(window.nklTimelapseClose)window.nklTimelapseClose(true);
+                            button.remove();
+                        }
+                    } finally {window.clearTimeout(timeout);request=null;}
+                }
+                updateTimelapseAvailability();
+                var availabilityTimer = window.setInterval(updateTimelapseAvailability, 30000);
 				button.onclick = function () {
 					var open = function () {
+                        if(disposed || !timelapseActive)return;
 						window.nklOpenTimelapse({player:player, button:button, channel:playerConfig.channelid,
 							onOpen:cancelSourceRetry,onPlay:function(){publicStreamActivated=true;claimPublicStream();startPlaybackTimer();},
 							onPause:function(){stopPlaybackTimer(true);}});
@@ -917,7 +945,7 @@
 					script.onerror=function(){button.disabled=false;button.title='Zeitrafferdienst nicht erreichbar';script.remove();css.remove();};
 					document.head.appendChild(script);
 				};
-				player.on('dispose', function(){if(window.nklTimelapseClose)window.nklTimelapseClose(false);});
+				player.on('dispose', function(){disposed=true;window.clearInterval(availabilityTimer);if(request)request.abort();style.remove();if(window.nklTimelapseClose)window.nklTimelapseClose(false);});
 			});
 			player.ready(function () {
 				if (autoplay === true) {

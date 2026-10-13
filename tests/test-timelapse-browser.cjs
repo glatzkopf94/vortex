@@ -11,7 +11,7 @@ const fixture=JSON.parse(fs.readFileSync('/tmp/nkl-timelapse-fixture.json','utf8
     await page.goto('http://127.0.0.1:8080/'+fixture.channel+'.html');
     await page.locator('.vjs-big-play-button').click();
     await page.waitForFunction(()=>window.player&&!player.paused()&&player.currentTime()>0&&!player.error());
-    assert.equal(requests.filter(u=>u.includes('/timelapse/')).length,0,'Live must make zero timelapse requests');
+    assert.equal(requests.filter(u=>u.includes('/timelapse/')&&!u.endsWith('/availability')).length,0,'Live must not preload timelapse lists or media');
     const source=await page.evaluate(()=>player.currentSrc());
     for(let i=0;i<2;i++){
       await page.locator('.nkl-timelapse-button').click();

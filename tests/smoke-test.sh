@@ -27,6 +27,33 @@ docker exec "$container" sh -c 'grep -Fq "lc-dvr-markers" /core/ui/_player/video
 docker exec "$container" sh -c "ps auxww | grep '[l]ivechasing-manager.py'" >/dev/null
 docker exec "$container" sh -c 'grep -Fq "def purge_dvr_content" /core/bin/livechasing-manager.py'
 docker exec "$container" python3 -c 'from urllib.request import urlopen; import json; s=json.load(urlopen("http://127.0.0.1:8099/admin/status", timeout=10)); assert "projects" in s'
+# Exercise the production time-lapse renderer and patched FFmpeg in private temp data.
+docker exec -i "$container" python3 - <<'PYTL'
+import sys,tempfile,json,subprocess
+from pathlib import Path
+sys.path.insert(0,'/core/bin/timelapse')
+from service import Service,DEFAULT
+with tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp);channel='00000000-0000-0000-0000-000000000001'
+    db=root/'db.json';db.write_text(json.dumps({'metadata':{'process':{'restreamer-ui:ingest:'+channel:{'restreamer-ui':{'meta':{'name':'Smoke'}}}}}}))
+    service=Service(root/'state',db,root/'data',min_free=0,quota=1024**3)
+    try:
+        service.configure(channel,{**DEFAULT,'mode':'season'})
+        pid=service.action({'action':'start','channel':channel})['id']
+        folder=service.root/pid;folder.mkdir(exist_ok=True)
+        subprocess.run(['ffmpeg','-hide_banner','-v','error','-f','lavfi','-i','testsrc2=size=320x240:rate=25','-frames:v','30','-threads','1',str(folder/'%06d.jpg')],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for i in range(1,31):
+            f=folder/f'{i:06d}.jpg';service.write('INSERT INTO frames VALUES(?,?,?,?)',(pid,i,str(f),f.stat().st_size))
+        service.action({'action':'export','project':pid})
+        service.render(service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0])
+        p=service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
+        assert not p['error'],p['error']
+        assert service.rows('SELECT SUM(frames) AS n FROM segments WHERE project=?',(pid,))[0]['n']==30
+        assert (folder/'export.mp4').is_file()
+        subprocess.run(['ffmpeg','-v','error','-i',str(folder/'segment-000000.ts'),'-f','null','-'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        print('Production time-lapse preview and MP4 export: OK')
+    finally:service.close()
+PYTL
 docker inspect "$container" --format '{{range .Mounts}}{{println .Destination}}{{end}}' | grep -Fxq /core/timelapse
 docker exec "$container" test -d /core/data/livechasing-control/requests
 docker exec "$container" test -d /core/data/livechasing-control/responses

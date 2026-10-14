@@ -71,7 +71,7 @@ def ffmpeg_progress_options():
     # The bundled JSON-stats patch bypasses FFmpeg's standard -progress writer.
     # Stock FFmpeg does not know this switch, so detect support once per process.
     result=subprocess.run(['ffmpeg','-hide_banner','-h','full'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=15,check=True)
-    return ['-jsonstats','0'] if re.search(rb'(?m)^-jsonstats\s',result.stdout) else []
+    return ['-nojsonstats'] if re.search(rb'(?m)^-jsonstats\s',result.stdout) else []
 
 
 class Service:

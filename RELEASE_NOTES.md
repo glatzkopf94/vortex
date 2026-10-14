@@ -1,16 +1,11 @@
-# Vortex 1.5 Beta / 0.3.0-dev25
+# Vortex 1.5 Beta / 0.3.0-dev26
 
-Übernimmt die lokalen Tests 22–25 auf Basis von dev24.
+Hotfix für die Zeitraffervorschau und MP4-Verarbeitung unter dem angepassten FFmpeg.
 
-- Kompaktes Mehrfachauswahl-Dropdown mit Checkboxen für aktive Zeitrafferkanäle.
-- Neue Rubrik „Alte Aufnahmen löschen“ mit Speicheranzeige, FTP-Verknüpfung und manuellen Löschbuttons. Automatische Löschung nach 1, 3 oder 7 Tagen ab Aufnahmeende; „Nie“ bedeutet ohne Altersgrenze, mit Bereinigung der ältesten abgeschlossenen Aufnahmen bei Speicherknappheit. Laufende/pausierte Aufnahmen und laufende Verarbeitung/Übertragungen bleiben geschützt.
-- Neue Zeitrafferabschnitte werden mit konstanter Qualität (x264 CRF 18) statt der einmalig ermittelten Live-Bandbreite kodiert. Der erzwungene Schlüsselbildtakt von einer Sekunde entfällt. Bereits kodierte Abschnitte bleiben unverändert; die höhere Qualität kann mehr Speicher benötigen.
-- Startseite verwendet denselben Hintergrund wie die Verwaltungsoberfläche und das Logo mit Livestream-Symbol. Alte Produktbeschriftungen, Standardbeschreibungen und Supportverweise bereinigt; Urheberhinweise und externe Dienste bleiben korrekt benannt.
-- MP4-Downloads verwenden dieselben Dateinamen wie FTP: Kanalname und deutsches Datum; Saisonaufnahmen und Namenskollisionen folgen den vorhandenen FTP-Regeln. HTTP-Downloadheader unterstützt UTF-8-Namen.
-- Fortschrittsanzeige direkt beim betroffenen Projekt: Verarbeitungsphase und Prozentwert, Download mit tatsächlich übertragenen Bytes, Prozenten und MB. Ohne bekannte Gesamtlänge werden empfangene MB angezeigt.
-- Korrektur für das angepasste FFmpeg: JSON-Statistikmodus für Zeitrafferverarbeitung deaktivieren, damit die Standard-Fortschrittsdatei aktualisiert wird. Stock-FFmpeg bleibt kompatibel. Statusabfragen erfolgen ohne überlappende Poll-Anfragen.
-- Downloadbutton grün umrahmt; Pausieren, MP4 aktualisieren und Veröffentlichung stoppen gelb; Beenden rot.
-- Footer: „Vortex - dev-25 1.5 Beta (Architektur)“, ohne lokalen Testzusatz.
+- Der in dev25 eingeführte Aufruf `-jsonstats 0` war für den booleschen Schalter ungültig: FFmpeg behandelte `0` als zusätzliche Ausgabedatei und brach die Verarbeitung ab. Korrigiert auf `-nojsonstats`.
+- Einzelbildaufnahme und Videoverarbeitung sind getrennt: Aufgenommene, noch gespeicherte Einzelbilder können nach dem Update wieder zu Vorschausegmenten und MP4 verarbeitet werden. Keine Löschung oder Neuerstellung vorhandener Projekte erforderlich.
+- Fortschrittsausgabe bleibt aktiv; Downloadfortschritt, Qualitätseinstellungen und übrige Funktionen aus dev25 bleiben erhalten.
+- Zusätzlicher Regressionstest für FFmpegs boolesche Argumentverarbeitung. Der Container-Smoke-Test erzeugt jetzt mit dem tatsächlich ausgelieferten FFmpeg eine Zeitraffervorschau und MP4 in isolierten temporären Daten und prüft die Dekodierung.
 
-Validierung: 34 Zeitraffer-Diensttests, echte FFmpeg-Kodierung und Bildzeitstempelprüfung, Fortschrittsparser und XHR-Bytefortschritt lokal geprüft. Native AMD64-/ARM64-Builds, Browser- und Containerprüfungen sind Releasevoraussetzung.
+Nach dem Update die Playerseite neu laden; bei umfangreichem Rückstand benötigt die Verarbeitung etwas Zeit.
 

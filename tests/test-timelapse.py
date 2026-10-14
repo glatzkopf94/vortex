@@ -188,11 +188,12 @@ class TimelapseTests(unittest.TestCase):
         ffmpeg_progress_options.cache_clear()
         try:
             with patch('service.subprocess.run',return_value=subprocess.CompletedProcess([],0,stdout=b'-jsonstats          print JSON progress report\n')):
-                self.assertEqual(ffmpeg_progress_options(),['-jsonstats','0'])
+                self.assertEqual(ffmpeg_progress_options(),['-nojsonstats'])
                 pid=self.project()
                 folder=self.service.root/pid;folder.mkdir(exist_ok=True)
                 args=self.service.progress_args(pid,'Bilder verarbeiten',10)
-                self.assertIn('-jsonstats',args)
+                self.assertIn('-nojsonstats',args)
+                self.assertNotIn('0',args)
                 (folder/'ffmpeg-progress.txt').write_text('out_time_us=2500000\nprogress=continue\n')
                 self.assertEqual(self.service.progress(pid)['percent'],25)
                 (folder/'ffmpeg-progress.txt').write_text('out_time_us=7500000\nprogress=continue\n')
@@ -200,6 +201,20 @@ class TimelapseTests(unittest.TestCase):
             ffmpeg_progress_options.cache_clear()
             with patch('service.subprocess.run',return_value=subprocess.CompletedProcess([],0,stdout=b'-stats_period time\n')):
                 self.assertEqual(ffmpeg_progress_options(),[])
+        finally:ffmpeg_progress_options.cache_clear()
+
+    def test_ffmpeg_boolean_switch_uses_no_prefix(self):
+        # Exercise FFmpeg's actual OPT_TYPE_BOOL parser with its built-in stats
+        # flag, the same option type used by our custom jsonstats flag.
+        from service import ffmpeg_progress_options
+        ffmpeg_progress_options.cache_clear()
+        try:
+            with patch('service.subprocess.run',return_value=subprocess.CompletedProcess([],0,stdout=b'-jsonstats          print JSON progress report\n')):
+                flags=ffmpeg_progress_options()
+            flags=[flag.replace('jsonstats','stats') for flag in flags]
+            progress=self.root/'real-progress.txt'
+            subprocess.run(['ffmpeg','-hide_banner','-v','error',*flags,'-progress',str(progress),'-f','lavfi','-i','color=size=16x16','-frames:v','2','-f','null','-'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            self.assertIn('progress=end',progress.read_text())
         finally:ffmpeg_progress_options.cache_clear()
 
     def test_first_preview_waits_for_two_images(self):

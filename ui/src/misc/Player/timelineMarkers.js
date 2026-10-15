@@ -1,4 +1,34 @@
 // Shared by admin and public timelapse players; loaded only with timelapse UI.
+window.nklConfigureTimelapseBuffer = function (player) {
+  player.on('loadstart', function () {
+    const vhs=player.tech() && player.tech().vhs;
+    const controller=vhs && vhs.playlistController_;
+    const loader=controller && controller.mainSegmentLoader_;
+    if (!loader) return; // Native HLS has its own buffer management.
+    // VHS 3 (Video.js 8): its default 30–60 seconds ahead plus 30 seconds
+    // behind can exceed Firefox's MSE quota for existing 100+ MB segments.
+    // Quota recovery removes through the next keyframe, including unplayed
+    // pictures. Keep this policy instance-local: Live/DVR must be untouched.
+    controller.goalBufferLength=()=>1;
+    loader.trimBackBuffer_=function () {
+      const playlist=this.playlist_;
+      if (!playlist || !playlist.endList) return;
+      const time=this.currentTime_();
+      let cut=0;
+      for (const segment of playlist.segments) {
+        if (Number.isFinite(segment.end) && segment.end<time-1) {
+          cut=Math.max(cut,segment.end);
+        }
+      }
+      // Every timelapse segment starts with a keyframe. Remove only completed
+      // segments, never at an arbitrary point in the currently playing GOP.
+      // Use measured ends rather than accumulated, rounded EXTINF durations;
+      // stay just before the boundary to tolerate MSE timestamp rounding.
+      if (cut>0.001) this.remove(0,cut-0.001);
+    };
+  });
+};
+
 window.nklTimelineMarkers = function (player, data) {
   const holder=player.el().querySelector('.vjs-progress-holder');
   if(!holder || !data.markers || !data.markers.length) return ()=>{};

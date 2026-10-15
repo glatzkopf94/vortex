@@ -3,8 +3,8 @@
   'use strict';
   window.nklOpenTimelapse = async function (context) {
     if (window.nklTimelapseClose) return;
-    if(!window.nklTimelineMarkers){
-      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=test7';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
+    if(!window.nklTimelineMarkers || !window.nklConfigureTimelapseBuffer){
+      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=timelapse-buffer-v1';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
     }
     if(window.nklTimelapseClose)return;
     context.onOpen();
@@ -46,6 +46,7 @@
       root.querySelector('video').hidden = false;
       if (!preview) {
         preview = videojs(root.querySelector('video'), {controls:true, autoplay:false, preload:'none', loop:false, fluid:false});
+        if (window.nklConfigureTimelapseBuffer) window.nklConfigureTimelapseBuffer(preview);
         preview.on('play', context.onPlay);
         preview.on('pause', context.onPause);
         preview.on('error', function () { message.textContent = 'Vorschau derzeit nicht verfügbar. Live bleibt erreichbar.'; });

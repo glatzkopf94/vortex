@@ -22,6 +22,7 @@ export default function TimelapsePreview({restreamer, project}) {
         await refreshToken(); if(closed)return;
         const element=document.createElement('video-js');element.className='video-js vjs-public nkl-timelapse-video';host.current.appendChild(element);
         player=videojs(element,{controls:true,autoplay:false,loop:false,preload:'none',fluid:true,html5:{vhs:{overrideNative:true}}});
+        window.nklConfigureTimelapseBuffer(player);
         instance.current=player;
         player.on('xhr-hooks-ready',()=>{
           const xhr=player.tech().vhs.xhr;

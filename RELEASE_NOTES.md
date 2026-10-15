@@ -1,11 +1,7 @@
-# Vortex 1.5 Beta / 0.3.0-dev26
+# Vortex 1.5 Beta / 0.3.0-dev27
 
-Hotfix für die Zeitraffervorschau und MP4-Verarbeitung unter dem angepassten FFmpeg.
+- Zeitraffervorschau: begrenzter Vorlauf und Bereinigung ausschließlich vollständig abgespielter Segmente. Verhindert bei großen 4K-Abschnitten die reproduzierten Firefox-Pufferspeicherfehler (`QUOTA_EXCEEDED_ERR`) mit anschließendem Überspringen noch nicht abgespielter Bilder.
+- Gilt für öffentliche Player und Admin-Vorschau, einschließlich vorhandener Aufnahmen. Aufnahmequalität, MP4-Export und die Pufferverwaltung von Live/DVR bleiben erhalten. Bei langsamer Verbindung sind weiterhin Ladepausen möglich.
+- Firefox-Regressionstest mit Originalsegmenten über 100 MB, verzögertem Nachladen, Rückwärtssuche und Prüfung der unveränderten Live-Pufferkonfiguration: `TIMELAPSE_FIXTURE_DIR=… node tests/test-timelapse-buffer.cjs`.
 
-- Der in dev25 eingeführte Aufruf `-jsonstats 0` war für den booleschen Schalter ungültig: FFmpeg behandelte `0` als zusätzliche Ausgabedatei und brach die Verarbeitung ab. Korrigiert auf `-nojsonstats`.
-- Einzelbildaufnahme und Videoverarbeitung sind getrennt: Aufgenommene, noch gespeicherte Einzelbilder können nach dem Update wieder zu Vorschausegmenten und MP4 verarbeitet werden. Keine Löschung oder Neuerstellung vorhandener Projekte erforderlich.
-- Fortschrittsausgabe bleibt aktiv; Downloadfortschritt, Qualitätseinstellungen und übrige Funktionen aus dev25 bleiben erhalten.
-- Zusätzlicher Regressionstest für FFmpegs boolesche Argumentverarbeitung. Der Container-Smoke-Test erzeugt jetzt mit dem tatsächlich ausgelieferten FFmpeg eine Zeitraffervorschau und MP4 in isolierten temporären Daten und prüft die Dekodierung.
-
-Nach dem Update die Playerseite neu laden; bei umfangreichem Rückstand benötigt die Verarbeitung etwas Zeit.
-
+Nach dem Update offene Playerseiten und die Verwaltungsoberfläche neu laden. Vorhandene Zeitraffer müssen nicht neu erzeugt werden.

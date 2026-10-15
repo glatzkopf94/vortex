@@ -2,7 +2,7 @@ name: "${RESTREAMER_PROJECT_NAME:-restreamer-nkl}"
 
 services:
   restreamer-nkl:
-    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev27}"
+    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev28}"
     container_name: "${RESTREAMER_CONTAINER_NAME:-vortex}"
     restart: unless-stopped
     ports:

@@ -35,9 +35,9 @@ const html = '<script src="/video.js"></script><script src="/helper.js"></script
     const file = path.join(fixture, segment.name);
     res.setHeader('Content-Type', 'video/mp2t');
     res.setHeader('Content-Length', fs.statSync(file).size);
-    // Force a real rebuffer at the last transition as well as normal appends.
+    // Simulate a slow download; prefetch must absorb this delay.
     setTimeout(() => { if (!res.destroyed) fs.createReadStream(file).pipe(res); },
-      segment === segments[2] ? 2500 : 0);
+      segment === segments[2] ? 5000 : 0);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser;
@@ -62,7 +62,7 @@ const html = '<script src="/video.js"></script><script src="/helper.js"></script
     assert.deepEqual(await page.evaluate(() => seeks), [], 'Playback must not jump automatically');
     assert.deepEqual(quota, [], 'No destructive quota recovery');
     assert.equal(await page.evaluate(() => preview.error()), null);
-    assert.ok(await page.evaluate(() => waits > 1), 'Exercised a rebuffer, not only preloaded playback');
+    assert.ok(await page.evaluate(() => waits <= 1), 'Prefetch must avoid waiting after initial startup');
     assert.ok(Math.abs(await page.evaluate(() => preview.currentTime()) - duration) < 0.2);
     // Seeking backwards reloads evicted pictures instead of losing access.
     await page.evaluate(() => { preview.currentTime(2); preview.play(); });
@@ -76,7 +76,7 @@ const html = '<script src="/video.js"></script><script src="/helper.js"></script
     assert.ok(await page.evaluate(() => live.tech().vhs.playlistController_.goalBufferLength()) >= 30,
       'Live/DVR keeps the original buffering policy');
     assert.deepEqual(errors, []);
-    console.log('PASS: Firefox original large segments, delayed loading without automatic seeks or quota recovery, backward seek, unchanged Live/DVR buffer.');
+    console.log('PASS: Firefox original large segments, five-second delayed prefetch without rebuffering, automatic seeks or quota recovery; backward seek and unchanged Live/DVR buffer.');
   } finally {
     if (browser) await browser.close();
     server.closeAllConnections();

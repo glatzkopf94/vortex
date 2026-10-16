@@ -4,7 +4,7 @@
   window.nklOpenTimelapse = async function (context) {
     if (window.nklTimelapseClose) return;
     if(!window.nklTimelineMarkers || !window.nklConfigureTimelapseBuffer){
-      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=timelapse-buffer-v2';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
+      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=timelapse-buffer-v3';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
     }
     if(window.nklTimelapseClose)return;
     context.onOpen();
@@ -17,6 +17,8 @@
     context.player.el().appendChild(root);
     var message = root.querySelector('p');
     var select = root.querySelector('select');
+    var refreshButton = root.querySelector('.nkl-timelapse-refresh');
+    var refreshing = false;
     var preview = null;
     var closed = false;
     var clearMarkers = function(){};
@@ -61,7 +63,13 @@
       preview.src({src:'timelapse/project/'+encodeURIComponent(option.value)+'/index.m3u8?t='+Date.now(), type:'application/x-mpegURL'});
 
     }
-    async function refresh() {
+    async function refresh(manual) {
+      if (refreshing || closed) return;
+      refreshing = true;
+      refreshButton.disabled = true;
+      refreshButton.setAttribute('aria-busy', 'true');
+      refreshButton.textContent = 'Wird aktualisiert …';
+      var succeeded = false;
       try {
         var response = await fetch('timelapse/channel/'+encodeURIComponent(context.channel), {cache:'no-store', signal:controller.signal});
         if (!response.ok) throw new Error('unavailable');
@@ -81,12 +89,21 @@
         else {var first=[].find.call(select.options,function(option){return !option.disabled;}); if(first)select.value=first.value;}
         if (!data.projects.some(function (p) {return p.previewFrames>0;})) message.textContent = 'Noch keine veröffentlichte Zeitraffervorschau vorhanden.';
         else show();
+        succeeded = true;
+        if (manual) message.textContent = 'Aktualisiert. ' + message.textContent;
       } catch (error) {
         if (!closed) message.textContent = 'Zeitraffer derzeit nicht erreichbar. Zurück zu Live ist jederzeit möglich.';
+      } finally {
+        refreshing = false;
+        if (!closed) {
+          refreshButton.disabled = false;
+          refreshButton.setAttribute('aria-busy', 'false');
+          refreshButton.textContent = manual ? (succeeded ? '✓ Aktualisiert' : 'Erneut versuchen') : 'Aktualisieren';
+        }
       }
     }
     select.onchange = show;
-    root.querySelector('.nkl-timelapse-refresh').onclick = refresh;
+    refreshButton.onclick = function () { return refresh(true); };
     root.querySelector('.nkl-live-return').focus();
     await refresh();
   };

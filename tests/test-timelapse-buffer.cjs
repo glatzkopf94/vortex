@@ -37,7 +37,7 @@ const html = '<script src="/video.js"></script><script src="/helper.js"></script
     res.setHeader('Content-Length', fs.statSync(file).size);
     // Simulate a slow download; prefetch must absorb this delay.
     setTimeout(() => { if (!res.destroyed) fs.createReadStream(file).pipe(res); },
-      segment === segments[2] ? 5000 : 0);
+      segment === segments[2] ? 8000 : 0);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser;
@@ -76,7 +76,7 @@ const html = '<script src="/video.js"></script><script src="/helper.js"></script
     assert.ok(await page.evaluate(() => live.tech().vhs.playlistController_.goalBufferLength()) >= 30,
       'Live/DVR keeps the original buffering policy');
     assert.deepEqual(errors, []);
-    console.log('PASS: Firefox original large segments, five-second delayed prefetch without rebuffering, automatic seeks or quota recovery; backward seek and unchanged Live/DVR buffer.');
+    console.log('PASS: Firefox original large segments, eight-second delayed prefetch without rebuffering, automatic seeks or quota recovery; backward seek and unchanged Live/DVR buffer.');
   } finally {
     if (browser) await browser.close();
     server.closeAllConnections();

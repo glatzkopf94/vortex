@@ -345,7 +345,7 @@ def dvr_max_hours(database: dict[str, Any]) -> int:
         return 4
 
 
-def referenced_dvr_segments(channel_id: str) -> set[Path] | None:
+def referenced_dvr_segments(channel_id: str, expired_before: float | None = None) -> set[Path] | None:
     """Return live playlist references, or None if cleanup cannot be proven safe."""
     playlists = list(DATA_DIR.glob(f"{channel_id}_*.m3u8"))
     playlists.append(DATA_DIR / f"{channel_id}.m3u8")
@@ -355,6 +355,8 @@ def referenced_dvr_segments(channel_id: str) -> set[Path] | None:
         if not playlist.is_file() or playlist.is_symlink():
             continue
         try:
+            if expired_before is not None and playlist.stat().st_mtime < expired_before:
+                continue  # A stopped/offline stream must not pin expired DVR forever.
             content = playlist.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
             return None
@@ -369,7 +371,7 @@ def referenced_dvr_segments(channel_id: str) -> set[Path] | None:
             if not uri.startswith(channel_id + "/") or ".." in Path(uri).parts:
                 return None
             references.add(DATA_DIR / uri)
-    return references if media_playlists else None
+    return references if media_playlists or expired_before is not None else None
 
 
 def enforce_dvr_retention(database: dict[str, Any], last_check: float, now: float, wall_time: float | None = None) -> float:
@@ -383,7 +385,7 @@ def enforce_dvr_retention(database: dict[str, Any], last_check: float, now: floa
         root = DATA_DIR / channel_id
         if not root.is_dir() or root.is_symlink():
             continue
-        referenced = referenced_dvr_segments(channel_id)
+        referenced = referenced_dvr_segments(channel_id, expired_before=cutoff)
         if referenced is None:
             continue
         for path in root.rglob("*"):

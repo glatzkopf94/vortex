@@ -1,5 +1,12 @@
 # Changelog
 
+## Vortex 1.5 Beta / 0.3.0-dev29
+
+- Öffentlicher Zeitrafferplayer: Aktualisieren-Button mit Handzeiger, Hover-/Tastaturfokus, Ladeanimation, Sperre gegen Mehrfachklicks und sichtbarer Erfolgs-/Fehlerrückmeldung.
+
+- DVR: Abgelaufene Segmente auch bei fehlender oder abgelaufener Playlist entfernen, damit gestoppte und ausgefallene Kanäle das globale Zurückspulfenster nicht unbegrenzt überschreiten. Aktuelle Playlist-Verweise bleiben geschützt; eine Minute Sicherheitsabstand bleibt erhalten.
+- Zeitraffervorschau: Vorlauf auf bis zu zwölf Wiedergabesekunden bzw. drei Viertel einer Segmentdauer erhöht. Sichere Bereinigung vollständig abgespielter Segmente bleibt aktiv.
+
 ## Vortex 1.5 Beta / 0.3.0-dev28
 
 - Zeitraffervorschau lädt den nächsten Abschnitt bis zu acht Wiedergabesekunden vor dem Pufferende. Bei kurzen Segmenten wird der Vorlauf auf die halbe Segmentdauer begrenzt.

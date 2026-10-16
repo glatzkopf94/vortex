@@ -9,12 +9,12 @@ window.nklConfigureTimelapseBuffer = function (player) {
     // behind can exceed Firefox's MSE quota for existing 100+ MB segments.
     // Quota recovery removes through the next keyframe, including unplayed
     // pictures. Keep this policy instance-local: Live/DVR must be untouched.
-    // Start the next download eight playback seconds before the boundary.
-    // Cap the lead to half a segment so short clips cannot accumulate many
+    // Start the next download twelve playback seconds before the boundary.
+    // Cap the lead to three quarters of a segment so short clips cannot accumulate many
     // segments; completed segments are removed before subsequent appends.
     controller.goalBufferLength=()=>{
       const duration=loader.playlist_ && loader.playlist_.targetDuration;
-      return Number.isFinite(duration) && duration>0 ? Math.min(8,duration/2) : 8;
+      return Number.isFinite(duration) && duration>0 ? Math.min(12,duration*0.75) : 12;
     };
     loader.trimBackBuffer_=function () {
       const playlist=this.playlist_;

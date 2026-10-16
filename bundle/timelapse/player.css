@@ -8,3 +8,12 @@
 
 .nkl-timelapse-toolbar .nkl-live-return{font-size:12px;font-weight:700;min-width:5em;height:30px;padding:0 .8em;border:1px solid rgba(255,255,255,.55);border-radius:4px;background:rgba(0,0,0,.42);color:white}
 .nkl-timelapse-toolbar .nkl-live-return:hover{border-color:rgba(255,255,255,.9);background:rgba(0,0,0,.7)}
+
+.nkl-timelapse-toolbar button:not(:disabled){cursor:pointer}
+.nkl-timelapse-refresh{min-width:10em;transition:background-color .15s,border-color .15s}
+.nkl-timelapse-toolbar .nkl-timelapse-refresh:hover:not(:disabled){background:#414141;border-color:#fff}
+.nkl-timelapse-toolbar button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.nkl-timelapse-toolbar .nkl-timelapse-refresh:disabled{cursor:progress;opacity:.85}
+.nkl-timelapse-refresh[aria-busy="true"]::before{content:"";display:inline-block;width:.8em;height:.8em;margin-right:.5em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.1em;animation:nkl-refresh-spin .8s linear infinite}
+@keyframes nkl-refresh-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.nkl-timelapse-refresh[aria-busy="true"]::before{animation:none}.nkl-timelapse-refresh{transition:none}}

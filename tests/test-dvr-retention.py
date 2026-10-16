@@ -87,6 +87,7 @@ class DVRRetentionTests(unittest.TestCase):
                 os.utime(path, (wall-age*3600, wall-age*3600))
             (Path(directory) / f"{IDS[0]}_output_0.m3u8").write_text(
                 f"#EXTM3U\n#EXTINF:2,\n{IDS[0]}/referenced.ts\n")
+            os.utime(Path(directory) / f"{IDS[0]}_output_0.m3u8", (wall, wall))
             MANAGER.enforce_dvr_retention(db, 0, 100, wall)
             self.assertTrue((root / "fourth-hour.ts").exists())
             self.assertFalse((root / "expired.ts").exists())
@@ -149,6 +150,8 @@ class DVRRetentionTests(unittest.TestCase):
                         "#EXTM3U\n#EXTINF:2,\n" + f"{channel}/output_0/20260926/referenced.ts\n",
                         encoding="utf-8",
                     )
+                for playlist in MANAGER.DATA_DIR.glob("*.m3u8"):
+                    os.utime(playlist, (wall, wall))
                 self.assertEqual(MANAGER.enforce_dvr_retention(db, 0, 100, wall), 100)
                 for channel in IDS:
                     root = MANAGER.DATA_DIR / channel / "output_0" / "20260926"
@@ -158,7 +161,25 @@ class DVRRetentionTests(unittest.TestCase):
             finally:
                 MANAGER.DATA_DIR = previous
 
-    def test_no_playlist_means_no_expiration_deletion(self):
+    def test_stale_playlist_expires_but_recent_segments_survive(self):
+        wall = 1_800_000_000
+        with tempfile.TemporaryDirectory() as directory, patch.object(MANAGER, "DATA_DIR", Path(directory)):
+            root = Path(directory) / IDS[0]
+            root.mkdir()
+            old = root / "old.ts"
+            recent = root / "recent.ts"
+            old.write_bytes(b"old")
+            recent.write_bytes(b"new")
+            os.utime(old, (wall-8*3600, wall-8*3600))
+            os.utime(recent, (wall-30, wall-30))
+            playlist = Path(directory) / f"{IDS[0]}_output_0.m3u8"
+            playlist.write_text(f"#EXTM3U\n#EXTINF:2,\n{IDS[0]}/old.ts\n")
+            os.utime(playlist, (wall-8*3600, wall-8*3600))
+            MANAGER.enforce_dvr_retention(fixture(), 0, 100, wall)
+            self.assertFalse(old.exists())
+            self.assertTrue(recent.exists())
+
+    def test_missing_playlist_does_not_pin_expired_segments(self):
         with tempfile.TemporaryDirectory() as directory:
             previous = MANAGER.DATA_DIR
             MANAGER.DATA_DIR = Path(directory)
@@ -169,7 +190,7 @@ class DVRRetentionTests(unittest.TestCase):
                 old.write_bytes(b"old")
                 os.utime(old, (1, 1))
                 MANAGER.enforce_dvr_retention(fixture(), 0, 100, 1_800_000_000)
-                self.assertTrue(old.exists())
+                self.assertFalse(old.exists())
             finally:
                 MANAGER.DATA_DIR = previous
 

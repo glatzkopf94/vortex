@@ -3,13 +3,13 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 (async()=>{
  const calls=[],handlers={};
- const elements={p:{},video:{hidden:true},'.nkl-live-return':{},'.nkl-timelapse-refresh':{setAttribute(name,value){this[name]=value;}}};
+ const elements={'.nkl-quality-toggle':{setAttribute(){}},'.nkl-quality-menu':{replaceChildren(){},appendChild(){}},p:{},video:{hidden:true},'.nkl-live-return':{},'.nkl-timelapse-refresh':{setAttribute(name,value){this[name]=value;}}};
  elements['.nkl-live-return'].focus=()=>{};
  const select={options:[],selectedIndex:0,value:'',replaceChildren(){this.options=[];},appendChild(o){this.options.push(o);}};
  elements.select=select;
  const root={setAttribute(){},querySelector(s){return elements[s];},addEventListener(){},remove(){calls.push('remove');}};
  const preview={on(name,handler){handlers[name]=handler;},pause(){calls.push('pause');},poster(url){calls.push(['poster',url]);},src(source){calls.push(['src',source.src]);},dispose(){calls.push('dispose');},play(){throw Error('Unexpected autoplay');}};
- const sandbox={window:{nklTimelineMarkers:()=>()=>{}},document:{createElement(tag){return tag==='section'?root:{dataset:{}};}},AbortController,Date,videojs(el,opts){assert.equal(opts.autoplay,false);assert.equal(opts.loop,false);assert.equal(opts.preload,'none');return preview;},fetch:async()=>({ok:true,json:async()=>({projects:[{id:'test-project',label:'2026-10-06',status:'recording',last:1800000000,previewFrames:20}]})})};
+ const sandbox={window:{nklTimelineMarkers:()=>()=>{}},document:{createElement(tag){return tag==='section'?root:{dataset:{},setAttribute(){}};}},AbortController,Date,videojs(el,opts){assert.equal(opts.autoplay,false);assert.equal(opts.loop,false);assert.equal(opts.preload,'none');return preview;},fetch:async(url)=>url.includes('qualities.json')?({ok:true,json:async()=>[{id:'original',label:'3840×2160',ready:true,url:'index.m3u8'}]}):({ok:true,json:async()=>({projects:[{id:'test-project',label:'2026-10-06',status:'recording',last:1800000000,previewFrames:20}]})})};
  vm.runInNewContext(fs.readFileSync('ui/src/misc/Player/timelineMarkers.js','utf8'),sandbox);
  sandbox.window.nklTimelineMarkers=()=>()=>{};
  vm.runInNewContext(fs.readFileSync('bundle/timelapse/player.js','utf8'),sandbox);

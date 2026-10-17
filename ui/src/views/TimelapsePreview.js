@@ -39,7 +39,13 @@ export default function TimelapsePreview({restreamer, project}) {
         fetch(prefix+'timeline.json',{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:controller.signal})
           .then(r=>{if(!r.ok)throw new Error('Zeitmarkierungen noch nicht verfügbar.');return r.json();})
           .then(data=>{if(!closed)window.nklTimelineMarkers(player,data);}).catch(()=>{});
-        player.src({src:prefix+'index.m3u8',type:'application/x-mpegURL'});
+        const qualityResponse=await fetch(prefix+'qualities.json',{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:controller.signal});
+        if(closed)return;
+        const qualities=qualityResponse.ok?await qualityResponse.json():[];
+        if(closed)return;
+        const preferred=qualities.find(q=>q.id==='1080'&&q.ready);
+        player.nklTimelapseBitrate=preferred?.bitrate||0;
+        player.src({src:prefix+(preferred?.url||'index.m3u8'),type:'application/x-mpegURL'});
         timer=setInterval(()=>refreshToken().catch(()=>setError('Anmeldung für Vorschau konnte nicht erneuert werden.')),60000);
       } catch(e){if(!closed)setError(e.message);}
     })();

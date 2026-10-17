@@ -51,7 +51,14 @@ with tempfile.TemporaryDirectory() as tmp:
         assert service.rows('SELECT SUM(frames) AS n FROM segments WHERE project=?',(pid,))[0]['n']==30
         assert (folder/'export.mp4').is_file()
         subprocess.run(['ffmpeg','-v','error','-i',str(folder/'segment-000000.ts'),'-f','null','-'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        print('Production time-lapse preview and MP4 export: OK')
+        service.render_quality(p)
+        service.render_quality(p)
+        error=service.rows('SELECT error FROM projects WHERE id=?',(pid,))[0]['error']
+        assert not error,error
+        assert all(q['ready'] for q in service.qualities(pid)),service.qualities(pid)
+        for height in (1080,720):
+            subprocess.run(['ffmpeg','-v','error','-i',str(folder/f'quality-{height}-segment-000000.ts'),'-f','null','-'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        print('Production time-lapse preview, MP4 and quality renditions: OK')
     finally:service.close()
 PYTL
 docker inspect "$container" --format '{{range .Mounts}}{{println .Destination}}{{end}}' | grep -Fxq /core/timelapse

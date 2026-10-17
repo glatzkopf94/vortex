@@ -1,7 +1,7 @@
 {
 	"name": "restreamer-ui",
-	"version": "0.3.0-dev29",
-	"bundle": "nkl-restreamer-0.3.0-dev29",
+	"version": "0.3.0-dev30",
+	"bundle": "nkl-restreamer-0.3.0-dev30",
 	"nklVersion": "1.5 Beta",
 	"packageManager": "yarn@1.22.22",
 	"private": false,
@@ -100,5 +100,5 @@
 		"react-error-overlay": "^6.0.11"
 	},
 	"resolutions": {},
-	"nklBuildLabel": "Vortex - dev-29 1.5 Beta"
+	"nklBuildLabel": "Vortex - dev-30 1.5 Beta"
 }

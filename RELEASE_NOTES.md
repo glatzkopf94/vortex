@@ -1,10 +1,12 @@
-# Vortex 1.5 Beta / 0.3.0-dev29
+# Vortex 1.5 Beta / 0.3.0-dev30
 
-- Öffentlicher Zeitrafferplayer: Aktualisieren-Button mit Handzeiger, Hover-/Tastaturfokus, Ladeanimation, Sperre gegen Mehrfachklicks und sichtbarer Erfolgs-/Fehlerrückmeldung.
+- Neue Zeitrafferkanäle starten erst nach Speichern der Einstellungen und ausdrücklichem Klick auf Aufnahme starten. Bestehende Aufnahmepläne bleiben aktiv.
+- Zeitrafferplayer mit Originalauflösung, 1080p (3072 kbit/s) und 720p (2048 kbit/s). Zahnrad zur Auswahl; 1080p wird bevorzugt, sobald bereit. Position bleibt beim Wechsel erhalten.
+- Transcoding global abschaltbar, Bitraten konfigurierbar. Änderungen gelten für neue Verarbeitungsaufträge. Bestehende Projekte werden nachverarbeitet; zusätzliche Dateien benötigen CPU und Speicher.
+- Zusatzqualitäten laden bis zu 60 Wiedergabesekunden voraus, mit bitrateabhängiger Begrenzung. Originaldateien und Downloads bleiben unverändert.
+- Einheitliche Buttonfarben, FTP-Link, Rückmeldungen, bündige Player-Buttons und getrennte Bereiche Transcoding / Kanal-Einstellungen. Deutsche Updatebezeichnungen heißen Vortex-Updates.
+- Auflösungsermittlung funktioniert mit dem vorhandenen FFmpeg ohne ffprobe.
 
-- DVR: Abgelaufene Segmente auch bei fehlender oder abgelaufener Playlist entfernen, damit gestoppte und ausgefallene Kanäle das globale Zurückspulfenster nicht unbegrenzt überschreiten. Aktuelle Playlist-Verweise bleiben geschützt; eine Minute Sicherheitsabstand bleibt erhalten.
-- Zeitraffervorschau: Vorlauf auf bis zu zwölf Wiedergabesekunden bzw. drei Viertel einer Segmentdauer erhöht. Sichere Bereinigung vollständig abgespielter Segmente bleibt aktiv.
+Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Bei neuen Kanälen Einstellungen speichern und Aufnahme starten. Vor Sonnenaufgang wartet der freigegebene Plan auf das konfigurierte Zeitfenster.
 
-Geprüft: DVR-/Manager-Tests, Aktualisieren-Erfolg und Fehlerfall sowie Firefox mit großen Originalsegmenten und acht Sekunden künstlicher Ladeverzögerung ohne Nachladepause oder automatische Sprünge.
-
-Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Vorhandene Zeitraffer müssen nicht neu erzeugt werden. Alte DVR-Segmente gestoppter Kanäle werden gemäß globaler Zurückspulzeit automatisch entfernt.
+Hinweis: Ein manuell gelöschtes Tagesprojekt wird am selben Tag weiterhin nicht automatisch neu angelegt. Diese bestehende Tagessperre wird durch das Update nicht entfernt; am Folgetag kann der Aufnahmeplan wieder starten.

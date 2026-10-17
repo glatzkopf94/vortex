@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -42,6 +43,47 @@ class TimelapseTests(unittest.TestCase):
             'input':[{'address':address,'options':['-rtsp_transport','tcp']}],
             'output':[{'options':['-map','0:0','-filter:v',graph]}]}}}
         self.db.write_text(json.dumps(db))
+
+    def test_quality_renditions_and_future_bitrate_changes(self):
+        pid=self.project()
+        for i in range(30):self.frame(pid,1800000000+i)
+        p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
+        self.service.render(p)
+        original=(self.service.root/pid/'segment-000000.ts').read_bytes()
+        # Match the production runtime: ffmpeg exists, ffprobe does not.
+        binaries=self.root/'runtime-bin';binaries.mkdir()
+        (binaries/'ffmpeg').symlink_to(shutil.which('ffmpeg'))
+        with patch.dict(os.environ,{'PATH':str(binaries)}):
+            self.service.render_quality(p);self.service.render_quality(p)
+        variants=self.service.qualities(pid)
+        self.assertEqual(variants[0]['label'],'640×360')
+        self.assertTrue(all(q['ready'] for q in variants))
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            base=f'http://127.0.0.1:{server.server_port}/admin/project/{pid}/'
+            self.assertEqual(len(json.load(urlopen(base+'qualities.json'))),3)
+            playlist=urlopen(base+'quality-1080.m3u8').read()
+            self.assertIn(b'quality-1080-segment-000000.ts',playlist)
+            self.assertEqual(urlopen(Request(base+'quality-1080-segment-000000.ts',method='HEAD')).status,200)
+        finally:server.shutdown();server.server_close();thread.join()
+
+        for height,width in ((1080,1920),(720,1280)):
+            f=self.service.root/pid/f'quality-{height}-segment-000000.ts'
+            probe=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=width,height,r_frame_rate','-of','json',str(f)]))['streams'][0]
+            self.assertEqual((probe['width'],probe['height']),(width,height))
+            self.assertEqual(probe['r_frame_rate'],'25/1')
+        self.service.action({'action':'configure_qualities','settings':{'enabled':True,'bitrate1080':4096,'bitrate720':2500}})
+        self.frame(pid,1800000090);self.frame(pid,1800000135)
+        self.service.render(p);self.service.render_quality(p);self.service.render_quality(p)
+        rows=self.service.rows('SELECT number,bitrate FROM quality_segments WHERE project=? AND quality=1080 ORDER BY number',(pid,))
+        self.assertEqual([r['bitrate'] for r in rows],[3072,4096])
+        self.assertEqual((self.service.root/pid/'segment-000000.ts').read_bytes(),original)
+        self.service.action({'action':'configure_qualities','settings':{'enabled':False,'bitrate1080':4096,'bitrate720':2500}})
+        self.assertEqual(len(self.service.qualities(pid)),1)
+        self.frame(pid,1800000180);self.service.render(p);self.service.render_quality(p)
+        self.assertFalse((self.service.root/pid/'quality-1080-segment-000002.ts').exists())
+        with self.assertRaises(ValueError):self.service.action({'action':'configure_qualities','settings':{'enabled':True,'bitrate1080':0,'bitrate720':2048}})
 
     def test_global_overlay_default_persistence_and_source_selection(self):
         self.assertFalse(self.service.global_settings()['includeBurnedOverlays'])
@@ -323,11 +365,62 @@ class TimelapseTests(unittest.TestCase):
         a,b=window(date(2026,3,29),full);self.assertEqual(b-a,23*3600)
         a,b=window(date(2026,10,25),full);self.assertEqual(b-a,25*3600)
         with self.assertRaises(ValueError): sun_times(date(2026,6,21),89,0)
+    def test_new_channel_requires_explicit_start_after_save_and_restart(self):
+        now=1800000000
+        self.service.set_channel_active(CHANNEL,True)
+        self.service.schedule(now)
+        self.assertEqual(self.service.status()['projects'],[])
+        self.service.configure(CHANNEL,{**DEFAULT,'interval':45})
+        self.service.schedule(now)
+        self.assertEqual(self.service.status()['projects'],[])
+        self.service.close()
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0)
+        self.service.schedule(now)
+        self.assertFalse(self.service.status()['channels'][0]['armed'])
+        self.assertEqual(self.service.status()['projects'],[])
+        self.service.action({'action':'start','channel':CHANNEL},now=now)
+        self.assertTrue(self.service.status()['channels'][0]['armed'])
+        self.assertEqual(len(self.service.status()['projects']),1)
+        self.service.action({'action':'start','channel':CHANNEL},now=now)
+        self.assertEqual(len(self.service.status()['projects']),1)
+
+    def test_solar_start_and_deleted_day_do_not_block_following_day(self):
+        cfg={**DEFAULT,'window':'solar','latitude':52.52,'longitude':13.405}
+        start,end=window(date(2026,10,17),cfg)
+        self.service.configure(CHANNEL,cfg)
+        self.service.schedule(start+1)
+        self.assertEqual(self.service.status()['projects'],[])
+        self.service.action({'action':'start','channel':CHANNEL},now=start-60)
+        self.assertEqual(self.service.status()['projects'],[])
+        self.service.schedule(start+1)
+        projects=self.service.status()['projects']
+        self.assertEqual(len(projects),1)
+        pid=projects[0]['id']
+        self.service.action({'action':'stop','project':pid},now=start+2)
+        self.service.action({'action':'delete','project':pid},now=start+3)
+        self.service.schedule(start+4)
+        self.assertEqual(self.service.status()['projects'],[])
+        tomorrow,_=window(date(2026,10,18),cfg)
+        self.service.schedule(tomorrow+1)
+        self.assertEqual(self.service.status()['projects'][0]['day'],'2026-10-18')
+
+    def test_armed_migration_preserves_existing_daily_plan(self):
+        self.service.configure(CHANNEL,DEFAULT)
+        self.service.close()
+        import sqlite3
+        with sqlite3.connect(self.root/'state/state.sqlite') as db:
+            db.execute('ALTER TABLE channels DROP COLUMN armed')
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0)
+        self.service.schedule(1800000000)
+        self.assertTrue(self.service.status()['channels'][0]['armed'])
+        self.assertEqual(len(self.service.status()['projects']),1)
+
     def test_validation_and_daily_resume_no_duplicates(self):
         for bad in [0,14,86401,float('nan')]:
             with self.assertRaises(ValueError): settings({'interval':bad})
         self.service.configure(CHANNEL,{**DEFAULT})
         now=datetime(2026,10,5,12,tzinfo=timezone.utc).timestamp()
+        self.service.action({'action':'start','channel':CHANNEL},now=now)
         self.service.schedule(now); self.service.schedule(now+120)
         self.assertEqual(len(self.service.status()['projects']),1)
         self.service.close();self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0)
@@ -491,7 +584,7 @@ class TimelapseTests(unittest.TestCase):
             self.assertEqual(json.load(urlopen(availability)),{'active':True})
             self.service.action({'action':'set_channel_active','channel':CHANNEL,'active':False})
             self.assertEqual(json.load(urlopen(availability)),{'active':False})
-            for filename in ['poster.jpg','index.m3u8','timeline.json','segment-000000.ts']:
+            for filename in ['poster.jpg','index.m3u8','timeline.json','segment-000000.ts','qualities.json','quality-1080.m3u8','quality-1080-segment-000000.ts']:
                 with self.assertRaises(HTTPError) as ctx:urlopen(base+'/public/project/'+pid+'/'+filename)
                 self.assertEqual(ctx.exception.code,404)
             response=urlopen(Request(base+'/admin/project/'+pid+'/export.mp4',headers={'Range':'bytes=0-9'}))

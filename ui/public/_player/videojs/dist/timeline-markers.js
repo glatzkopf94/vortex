@@ -13,6 +13,7 @@ window.nklConfigureTimelapseBuffer = function (player) {
     // Cap the lead to three quarters of a segment so short clips cannot accumulate many
     // segments; completed segments are removed before subsequent appends.
     controller.goalBufferLength=()=>{
+      if(player.nklTimelapseBitrate>0)return Math.min(60,48*8192/player.nklTimelapseBitrate);
       const duration=loader.playlist_ && loader.playlist_.targetDuration;
       return Number.isFinite(duration) && duration>0 ? Math.min(12,duration*0.75) : 12;
     };

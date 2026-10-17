@@ -13,12 +13,17 @@
     var root = document.createElement('section');
     root.className = 'nkl-timelapse-panel';
     root.setAttribute('aria-label', 'Zeitraffer');
-    root.innerHTML = '<div class="nkl-timelapse-toolbar"><button type="button" class="nkl-live-return"><span style="color:#f44">●</span> Live</button><select aria-label="Zeitraffer auswählen"></select><button type="button" class="nkl-timelapse-refresh">Aktualisieren</button></div><p role="status">Zeitraffer werden geladen …</p><video class="video-js vjs-public nkl-timelapse-video" controls playsinline hidden></video>';
+    root.innerHTML = '<div class="nkl-timelapse-toolbar"><button type="button" class="nkl-live-return"><span style="color:#f44">●</span> Live</button><select aria-label="Zeitraffer auswählen"></select><div class="nkl-quality-control"><button type="button" class="nkl-quality-toggle" aria-label="Wiedergabequalität einstellen" title="Wiedergabequalität" aria-expanded="false">⚙</button><div class="nkl-quality-menu" hidden role="group" aria-label="Wiedergabequalität"></div></div><button type="button" class="nkl-timelapse-refresh">Aktualisieren</button></div><p role="status">Zeitraffer werden geladen …</p><video class="video-js vjs-public nkl-timelapse-video" controls playsinline hidden></video>';
     context.player.el().appendChild(root);
     var message = root.querySelector('p');
     var select = root.querySelector('select');
     var refreshButton = root.querySelector('.nkl-timelapse-refresh');
     var refreshing = false;
+    var qualityToggle=root.querySelector('.nkl-quality-toggle');
+    var qualityMenu=root.querySelector('.nkl-quality-menu');
+    var qualityChoice=null, qualityRequest=0;
+    qualityToggle.onclick=function(){qualityMenu.hidden=!qualityMenu.hidden;qualityToggle.setAttribute('aria-expanded',String(!qualityMenu.hidden));};
+
     var preview = null;
     var closed = false;
     var clearMarkers = function(){};
@@ -41,7 +46,7 @@
     window.nklTimelapseClose = close;
     root.querySelector('.nkl-live-return').onclick = function () { close(true); };
     root.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(true); });
-    function show() {
+    async function show(preserve) {
       var option = select.options[select.selectedIndex];
       if (!option || option.disabled) return;
       message.textContent = option.dataset.description;
@@ -53,6 +58,30 @@
         preview.on('pause', context.onPause);
         preview.on('error', function () { message.textContent = 'Vorschau derzeit nicht verfügbar. Live bleibt erreichbar.'; });
       }
+      var stamp=++qualityRequest;
+      var position=preserve?preview.currentTime():0;
+      var playing=preserve&&!preview.paused();
+      var variants;
+      try {
+        var response=await fetch('timelapse/project/'+encodeURIComponent(option.value)+'/qualities.json',{cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw new Error('Qualitäten nicht erreichbar');
+        variants=await response.json();
+        if(closed||stamp!==qualityRequest)return;
+      } catch(error) {
+        if(closed||stamp!==qualityRequest)return;
+        message.textContent+=' · Qualitätsauswahl nicht verfügbar, Quellvideo wird verwendet.';
+        variants=[{id:'original',label:'Quellauflösung',ready:true,url:'index.m3u8'}];
+      }
+      var selected=variants.find(function(q){return q.id===qualityChoice&&q.ready;}) || variants.find(function(q){return q.id==='1080'&&q.ready;}) || variants[0];
+      qualityMenu.replaceChildren();
+      variants.forEach(function(q){
+        var button=document.createElement('button');button.type='button';button.disabled=!q.ready;
+        button.textContent=q.label+(q.ready?'':' · wird vorbereitet');button.setAttribute('aria-pressed',String(q.id===selected.id));
+        button.onclick=function(){qualityChoice=q.id;qualityMenu.hidden=true;qualityToggle.setAttribute('aria-expanded','false');show(true);};qualityMenu.appendChild(button);
+      });
+      qualityToggle.title='Wiedergabequalität: '+selected.label;
+      qualityToggle.setAttribute('aria-label',qualityToggle.title);
+      preview.nklTimelapseBitrate=selected.bitrate||0;
       clearMarkers();
       var request=++markerRequest;
       fetch('timelapse/project/'+encodeURIComponent(option.value)+'/timeline.json',{cache:'no-store',signal:controller.signal})
@@ -60,9 +89,10 @@
         .then(function(data){if(!closed&&request===markerRequest&&window.nklTimelineMarkers)clearMarkers=window.nklTimelineMarkers(preview,data);}).catch(function(){});
       preview.pause();
       preview.poster('timelapse/project/'+encodeURIComponent(option.value)+'/poster.jpg?t='+Date.now());
-      preview.src({src:'timelapse/project/'+encodeURIComponent(option.value)+'/index.m3u8?t='+Date.now(), type:'application/x-mpegURL'});
-
+      if(preserve)preview.one('loadedmetadata',function(){if(closed||stamp!==qualityRequest)return;preview.currentTime(position);if(playing){var promise=preview.play();if(promise&&promise.catch)promise.catch(function(){});}});
+      preview.src({src:'timelapse/project/'+encodeURIComponent(option.value)+'/'+selected.url+'?t='+Date.now(), type:'application/x-mpegURL'});
     }
+
     async function refresh(manual) {
       if (refreshing || closed) return;
       refreshing = true;
@@ -88,7 +118,7 @@
         if ([].some.call(select.options, function (option) {return option.value===previous && !option.disabled;})) select.value=previous;
         else {var first=[].find.call(select.options,function(option){return !option.disabled;}); if(first)select.value=first.value;}
         if (!data.projects.some(function (p) {return p.previewFrames>0;})) message.textContent = 'Noch keine veröffentlichte Zeitraffervorschau vorhanden.';
-        else show();
+        else await show(false);
         succeeded = true;
         if (manual) message.textContent = 'Aktualisiert. ' + message.textContent;
       } catch (error) {
@@ -102,7 +132,7 @@
         }
       }
     }
-    select.onchange = show;
+    select.onchange = function(){qualityChoice=null;show(false);};
     refreshButton.onclick = function () { return refresh(true); };
     root.querySelector('.nkl-live-return').focus();
     await refresh();

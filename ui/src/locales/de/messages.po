@@ -4102,7 +4102,7 @@ msgstr "YUV-Testbild"
 
 #: src/views/Settings.js
 msgid "Check for NKL updates"
-msgstr "Nach NKL-Updates suchen"
+msgstr "Nach Vortex-Updates suchen"
 
 #: src/views/Settings.js
 msgid "The check reads only the latest release information from the NKL GitHub repository."
@@ -4118,7 +4118,7 @@ msgstr "Jetzt prüfen"
 
 #: src/views/Settings.js
 msgid "NKL update available: {0}"
-msgstr "NKL-Update verfügbar: {0}"
+msgstr "Vortex-Update verfügbar: {0}"
 
 #: src/views/Settings.js
 msgid "Release details"
@@ -4134,11 +4134,11 @@ msgstr "Die installierte Version {0} ist aktuell."
 
 #: src/views/Settings.js
 msgid "The NKL release information could not be retrieved."
-msgstr "Die NKL-Release-Informationen konnten nicht abgerufen werden."
+msgstr "Die Vortex-Release-Informationen konnten nicht abgerufen werden."
 
 #: src/views/Settings.js
 msgid "Check for NKL updates on the server"
-msgstr "Serverseitig nach NKL-Updates suchen"
+msgstr "Serverseitig nach Vortex-Updates suchen"
 
 #: src/views/Settings.js
 msgid "No usage metrics or viewer data are sent during this check."
@@ -4146,7 +4146,7 @@ msgstr "Bei dieser Prüfung werden keine Nutzungsmetriken oder Zuschauerdaten ü
 
 #: src/views/Settings.js
 msgid "The NKL update check failed."
-msgstr "Die NKL-Updateprüfung ist fehlgeschlagen."
+msgstr "Die Vortex-Updateprüfung ist fehlgeschlagen."
 
 #: src/views/Settings.js
 msgid "Vortex is up to date."
@@ -4154,15 +4154,15 @@ msgstr "Vortex ist aktuell."
 
 #: src/views/Settings.js
 msgid "The NKL update was installed. The interface is reloading."
-msgstr "Das NKL-Update wurde installiert. Die Oberfläche wird neu geladen."
+msgstr "Das Vortex-Update wurde installiert. Die Oberfläche wird neu geladen."
 
 #: src/views/Settings.js
 msgid "The NKL update could not be installed: {0}"
-msgstr "Das NKL-Update konnte nicht installiert werden: {0}"
+msgstr "Das Vortex-Update konnte nicht installiert werden: {0}"
 
 #: src/views/Settings.js
 msgid "Installing NKL update"
-msgstr "NKL-Update wird installiert"
+msgstr "Vortex-Update wird installiert"
 
 #: src/views/Settings.js
 msgid "The image and the verified installation package are being downloaded. Streams will be interrupted briefly while the container is replaced."
@@ -4170,7 +4170,7 @@ msgstr "Das Image und das geprüfte Installationspaket werden geladen. Beim Aust
 
 #: src/views/Settings.js
 msgid "Install NKL update?"
-msgstr "NKL-Update installieren?"
+msgstr "Vortex-Update installieren?"
 
 #: src/views/Settings.js
 msgid "Install {0}"

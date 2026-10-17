@@ -17,3 +17,15 @@
 .nkl-timelapse-refresh[aria-busy="true"]::before{content:"";display:inline-block;width:.8em;height:.8em;margin-right:.5em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-.1em;animation:nkl-refresh-spin .8s linear infinite}
 @keyframes nkl-refresh-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.nkl-timelapse-refresh[aria-busy="true"]::before{animation:none}.nkl-timelapse-refresh{transition:none}}
+
+.nkl-quality-control{position:relative;flex:none}
+.nkl-quality-toggle{font-size:20px!important;min-width:36px}
+.nkl-quality-menu{position:absolute;right:0;top:100%;z-index:50;background:#222;padding:6px;border:1px solid #888;border-radius:4px;min-width:200px;box-shadow:0 4px 12px #0008}
+.nkl-quality-menu[hidden]{display:none}
+.nkl-quality-menu button{display:block;width:100%;text-align:left;margin:3px 0}
+.nkl-quality-menu button[aria-pressed="true"]{border-color:#4caf50;background:#24452b}
+.nkl-quality-menu button:disabled{opacity:.5}
+
+/* Keep the day selector and both preview controls on the same baseline. */
+.nkl-timelapse-toolbar select,.nkl-timelapse-toolbar .nkl-timelapse-refresh,.nkl-timelapse-toolbar .nkl-quality-toggle{box-sizing:border-box;height:32px;line-height:20px;padding-top:5px;padding-bottom:5px}
+.nkl-quality-control{display:flex;align-items:center}

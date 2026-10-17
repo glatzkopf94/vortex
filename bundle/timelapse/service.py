@@ -86,6 +86,8 @@ class Service:
         self.db = sqlite3.connect(self.root/'state.sqlite', check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.executescript('''PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
+        CREATE TABLE IF NOT EXISTS media_info(project TEXT PRIMARY KEY, width INTEGER, height INTEGER);
+        CREATE TABLE IF NOT EXISTS quality_segments(project TEXT, quality INTEGER, number INTEGER, bitrate INTEGER, PRIMARY KEY(project,quality,number));
         CREATE TABLE IF NOT EXISTS global_settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS deleted_days(channel TEXT, day TEXT, PRIMARY KEY(channel,day));
         CREATE TABLE IF NOT EXISTS channels(id TEXT PRIMARY KEY, settings TEXT NOT NULL, error TEXT DEFAULT '');
@@ -98,6 +100,8 @@ class Service:
         # Keep previously configured channels active; unknown channels remain off.
         if 'active' not in {row['name'] for row in self.db.execute('PRAGMA table_info(channels)')}:
             self.db.execute('ALTER TABLE channels ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
+        if 'armed' not in {row['name'] for row in self.db.execute('PRAGMA table_info(channels)')}:
+            self.db.execute('ALTER TABLE channels ADD COLUMN armed INTEGER NOT NULL DEFAULT 1')
         self.db.commit()
         self.capture_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.render_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -171,7 +175,7 @@ class Service:
     def set_channel_active(self, channel, active):
         if channel not in {c['id'] for c in self.known_channels()}: raise ValueError('Unbekannter Kanal')
         if not isinstance(active,bool): raise ValueError('Boolescher Wert erwartet')
-        self.write('INSERT INTO channels(id,settings,active) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET active=excluded.active',
+        self.write('INSERT INTO channels(id,settings,active,armed) VALUES(?,?,?,0) ON CONFLICT(id) DO UPDATE SET active=excluded.active',
                    (channel,json.dumps(DEFAULT),int(active)))
         # Re-enabling resumes at the current time, without counting the disabled
         # period as failed camera captures. Existing paused projects stay paused.
@@ -182,7 +186,7 @@ class Service:
     def configure(self, channel, raw):
         if channel not in {c['id'] for c in self.known_channels()}: raise ValueError('Unbekannter Kanal')
         s=settings(raw)
-        self.write('INSERT INTO channels(id,settings) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET settings=excluded.settings,error=\'\'',(channel,json.dumps(s)))
+        self.write('INSERT INTO channels(id,settings,armed) VALUES(?,?,0) ON CONFLICT(id) DO UPDATE SET settings=excluded.settings,error=\'\'',(channel,json.dumps(s)))
         # Existing recordings retain interval/resolution; publicity can be revoked immediately.
         with self.lock, self.db:
             for p in self.rows('SELECT * FROM projects WHERE channel=?',(channel,)):
@@ -211,6 +215,14 @@ class Service:
         if not isinstance(request, dict): raise ValueError('Ungueltiger Auftrag')
         action=request.get('action'); channel=request.get('channel')
         if action=='set_channel_active': return self.set_channel_active(channel,request.get('active'))
+        if action=='configure_qualities':
+            value=request.get('settings',{})
+            if type(value.get('enabled')) is not bool: raise ValueError('Transcoding muss ein- oder ausgeschaltet sein.')
+            for key in ('bitrate1080','bitrate720'):
+                if type(value.get(key)) is not int or not 256<=value[key]<=20000:
+                    raise ValueError('Bitrate muss zwischen 256 und 20000 kbit/s liegen.')
+            self.write('INSERT OR REPLACE INTO global_settings VALUES(?,?)',('qualities',json.dumps(value)))
+            return self.global_settings()
         if action=='configure_retention':
             days=request.get('days')
             if type(days) is not int or days not in (0,1,3,7): raise ValueError('Aufbewahrung muss nie, 1, 3 oder 7 Tage sein.')
@@ -264,8 +276,15 @@ class Service:
             rows=self.rows('SELECT settings FROM channels WHERE id=?',(channel,))
             if not rows: raise ValueError('Zuerst Kanaleinstellungen speichern.')
             s=json.loads(rows[0]['settings'])
-            if s['mode']!='season': raise ValueError('Manueller Start ist fuer Saisonprojekte vorgesehen.')
-            return {'id':self.create_project(channel,s,now)}
+            if not s['enabled']: raise ValueError('Zuerst Aufnahmeplan aktivieren und Einstellungen speichern.')
+            if s['mode']=='season':
+                pid=self.create_project(channel,s,now)
+                self.write('UPDATE channels SET armed=1 WHERE id=?',(channel,))
+                return {'id':pid}
+            self.write('UPDATE channels SET armed=1 WHERE id=?',(channel,))
+            self.schedule(now)
+            return {'armed':True}
+
         if action=='delete_finished':
             mode=request.get('mode')
             if mode not in ('daily','season'): raise ValueError('Betriebsart fuer Sammelloeschung erforderlich.')
@@ -296,7 +315,7 @@ class Service:
             shutil.rmtree(self.root/pid,ignore_errors=False) if (self.root/pid).exists() else None
             with self.lock,self.db:
                 if p['day']: self.db.execute('INSERT OR IGNORE INTO deleted_days VALUES(?,?)',(p['channel'],p['day']))
-                for table in ('frames','segments','attempts','timeline'): self.db.execute('DELETE FROM '+table+' WHERE project=?',(pid,))
+                for table in ('frames','segments','attempts','timeline','quality_segments','media_info'): self.db.execute('DELETE FROM '+table+' WHERE project=?',(pid,))
                 self.db.execute('DELETE FROM projects WHERE id=?',(pid,))
             self.render_retry.pop(pid,None)
             self.processing.pop(pid,None)
@@ -310,7 +329,7 @@ class Service:
     def schedule(self, now):
         for channel in self.rows('SELECT * FROM channels'):
             s=json.loads(channel['settings'])
-            if not channel['active'] or not s['enabled'] or s['mode']!='daily': continue
+            if not channel['active'] or not channel['armed'] or not s['enabled'] or s['mode']!='daily': continue
             today=datetime.fromtimestamp(now,ZoneInfo(s['timezone'])).date()
             self.write('DELETE FROM deleted_days WHERE channel=? AND day<?',(channel['id'],(today-timedelta(days=2)).isoformat()))
             try:
@@ -335,7 +354,66 @@ class Service:
         retention=self.rows('SELECT value FROM global_settings WHERE key=?',('retentionDays',))
         days=json.loads(retention[0]['value']) if retention else 0
         return {'includeBurnedOverlays':bool(rows and json.loads(rows[0]['value']) is True),
-                'retentionDays':days if type(days) is int and days in (0,1,3,7) else 0}
+                'retentionDays':days if type(days) is int and days in (0,1,3,7) else 0,'qualities':self.quality_settings()}
+
+    def quality_settings(self):
+        rows=self.rows("SELECT value FROM global_settings WHERE key='qualities'")
+        return json.loads(rows[0]['value']) if rows else {'enabled':True,'bitrate1080':3072,'bitrate720':2048}
+
+    def qualities(self,pid):
+        info=self.rows('SELECT width,height FROM media_info WHERE project=?',(pid,))
+        count=self.rows('SELECT COUNT(*) AS n FROM segments WHERE project=?',(pid,))[0]['n']
+        label=f"{info[0]['width']}×{info[0]['height']}" if info else 'Quellauflösung (wird ermittelt)'
+        result=[{'id':'original','label':label,'ready':bool(count),'url':'index.m3u8'}]
+        cfg=self.quality_settings()
+        if cfg['enabled']:
+            for q,w in ((1080,1920),(720,1280)):
+                ready=self.rows('SELECT COUNT(*) AS n FROM quality_segments WHERE project=? AND quality=?',(pid,q))[0]['n']
+                highest=self.rows('SELECT MAX(bitrate) AS b FROM quality_segments WHERE project=? AND quality=?',(pid,q))[0]['b'] or 0
+                result.append({'id':str(q),'label':f'{w}×{q}','ready':bool(count and ready==count),'bitrate':max(highest,cfg[f'bitrate{q}']),'url':f'quality-{q}.m3u8'})
+        return result
+
+    def render_quality(self,p):
+        pid=p['id'];folder=self.root/pid
+        try:
+            segments=self.rows('SELECT * FROM segments WHERE project=? ORDER BY number',(pid,))
+            if not segments:return
+            if not self.rows('SELECT project FROM media_info WHERE project=?',(pid,)):
+                # The runtime ships FFmpeg without ffprobe. Decode one frame and
+                # read showinfo's dimensions, including with the JSON-stats build.
+                probe=run(['ffmpeg',*ffmpeg_progress_options(),'-nostdin','-hide_banner','-v','info','-i',segments[0]['path'],'-map','0:v:0','-an','-vf','showinfo','-frames:v','1','-f','null','-'],30)
+                size=re.search(rb'\b s:(\d+)x(\d+)\b',probe.stderr)
+                if not size:raise ValueError('Quellauflösung konnte mit FFmpeg nicht ermittelt werden.')
+                self.write('INSERT OR REPLACE INTO media_info VALUES(?,?,?)',(pid,int(size[1]),int(size[2])))
+            # Read settings for each new transcode, not from the project's snapshot.
+            # Existing encoded segments retain their original bitrate.
+            cfg=self.quality_settings()
+            if not cfg['enabled']:return
+            if not self.enough_space(64*1024**2):raise ValueError('Speicherreserve für Vorschauqualitäten erreicht.')
+            for segment in segments:
+                for q,w in ((1080,1920),(720,1280)):
+                    if self.rows('SELECT number FROM quality_segments WHERE project=? AND quality=? AND number=?',(pid,q,segment['number'])):continue
+                    cfg=self.quality_settings()
+                    if not cfg['enabled']:return
+                    bitrate=cfg[f'bitrate{q}'];s=json.loads(p['settings'])
+                    expected=int(segment['frames']/s['fps']*bitrate*125*1.5)+16*1024**2
+                    if not self.enough_space(expected):raise ValueError('Speicherreserve für Vorschauqualität erreicht.')
+                    name=f"quality-{q}-segment-{segment['number']:06d}.ts"
+                    target=folder/name;tmp=folder/('.'+name)
+                    filters=f'scale={w}:{q}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={w}:{q}:(ow-iw)/2:(oh-ih)/2,setsar=1'
+                    try:
+                        run(['ffmpeg','-nostdin','-v','error','-r',str(s['fps']),'-i',segment['path'],'-an','-vf',filters,'-r',str(s['fps']),'-fps_mode','cfr','-frames:v',str(segment['frames']),'-c:v','libx264','-preset','veryfast','-pix_fmt','yuv420p','-threads','1','-b:v',f'{bitrate}k','-maxrate',f'{bitrate}k','-bufsize',f'{bitrate*2}k','-g',str(s['fps']*2),'-f','mpegts','-y',str(tmp)],600)
+                        with tmp.open('ab') as output:
+                            while output.tell()<188*64:output.write(b'\x47\x1f\xff\x10'+b'\xff'*184)
+                        os.replace(tmp,target)
+                        self.write('INSERT OR REPLACE INTO quality_segments VALUES(?,?,?,?)',(pid,q,segment['number'],bitrate))
+                        self.write("UPDATE projects SET error='' WHERE id=?",(pid,))
+                        self.last_usage=(0,0)
+                    finally:tmp.unlink(missing_ok=True)
+                    return # One segment per job; original rendering always has priority.
+        except Exception as error:
+            self.render_retry[pid]=time.time()+60
+            self.write('UPDATE projects SET error=? WHERE id=?',('Vorschauqualität: '+str(error)[:200],pid))
 
     def cleanup_retention(self, now):
         # Called under the scheduler lock, before launching workers. Never delete
@@ -677,6 +755,14 @@ class Service:
                 if needs_poster or (frames and (frames>=250 or (frames>=2 and (not last or now-last>=300)) or p['export'])) or (p['export'] and not frames):
                     self.render_job=self.render_pool.submit(self.render,p); break
 
+        if not self.render_job or self.render_job.done():
+            for p in self.rows('SELECT * FROM projects ORDER BY started DESC'):
+                if self.render_retry.get(p['id'],0)>now:continue
+                variants=self.qualities(p['id'])
+                info=self.rows('SELECT project FROM media_info WHERE project=?',(p['id'],))
+                if variants[0]['ready'] and (not info or any(not q['ready'] for q in variants)):
+                    self.render_job=self.render_pool.submit(self.render_quality,p);break
+
     def timeline(self,p):
         if not p['day']: return {'markers':[]}
         s=json.loads(p['settings'])
@@ -718,7 +804,7 @@ class Service:
         except (OSError,ValueError): target_status={'state':'idle'}
         if self.transfer_pending: target_status={'state':'preparing','origin':self.transfer_plan['origin']}
         channels={c['id']:c for c in self.rows('SELECT * FROM channels')}
-        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'active':bool(channels.get(c['id'],{}).get('active',False)),'settings':json.loads(channels[c['id']]['settings']) if c['id'] in channels else DEFAULT,'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
+        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'active':bool(channels.get(c['id'],{}).get('active',False)),'armed':bool(channels.get(c['id'],{}).get('armed',False)),'settings':json.loads(channels[c['id']]['settings']) if c['id'] in channels else DEFAULT,'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
 
     def close(self):
         self.capture_pool.shutdown(wait=True); self.render_pool.shutdown(wait=True); self.archive_pool.shutdown(wait=True); self.transfer_pool.shutdown(wait=True); self.transfer_test_pool.shutdown(wait=True); self.db.close()

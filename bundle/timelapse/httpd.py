@@ -45,14 +45,18 @@ def make_handler(service):
                 if match:
                     if not UUID.fullmatch(match[1]): return self.reply(404,{'message':'Not found'})
                     return self.reply(200,service.status(match[1],public=True))
-                match=re.fullmatch(r'/(admin|public)/project/([^/]+)/(index\.m3u8|segment-\d{6}\.ts|export\.mp4|poster\.jpg|timeline\.json)',path)
+                match=re.fullmatch(r'/(admin|public)/project/([^/]+)/(index\.m3u8|quality-(?:1080|720)\.m3u8|quality-(?:1080|720)-segment-\d{6}\.ts|qualities\.json|segment-\d{6}\.ts|export\.mp4|poster\.jpg|timeline\.json)',path)
                 if not match or not UUID.fullmatch(match[2]): return self.reply(404,{'message':'Not found'})
                 access,pid,filename=match.groups()
                 projects=service.rows('SELECT * FROM projects WHERE id=?',(pid,))
                 if not projects or (access=='public' and (not service.channel_active(projects[0]['channel']) or not json.loads(projects[0]['settings'])['public'])): return self.reply(404,{'message':'Not found'})
                 p=projects[0]; s=json.loads(p['settings'])
+                if filename=='qualities.json': return self.reply(200,service.qualities(pid))
+                if filename.startswith('quality-') and not service.quality_settings()['enabled']: return self.reply(404,{'message':'Zusätzliche Qualitäten deaktiviert'})
                 if filename=='timeline.json': return self.reply(200,service.timeline(p))
-                if filename=='index.m3u8':
+                if filename.endswith('.m3u8'):
+                    quality=int(filename.split('-')[1].split('.')[0]) if filename.startswith('quality-') else None
+                    if quality and not next(x for x in service.qualities(pid) if x['id']==str(quality))['ready']: return self.reply(404,{'message':'Qualität wird vorbereitet'})
                     segments=service.rows('SELECT * FROM segments WHERE project=? ORDER BY number',(pid,))
                     if not segments: return self.reply(404,{'message':'Vorschau wird vorbereitet'})
                     durations=[max(0.04,x['frames']/s['fps']) for x in segments]
@@ -60,7 +64,7 @@ def make_handler(service):
                     text='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:'+str(max(1,math.ceil(max(durations))))+'\n#EXT-X-MEDIA-SEQUENCE:0\n'
                     for index,(segment,duration) in enumerate(zip(segments,durations)):
                         if index: text+='#EXT-X-DISCONTINUITY\n'
-                        text+=f'#EXTINF:{duration:.6f},\nsegment-{segment["number"]:06d}.ts\n'
+                        text+=f'#EXTINF:{duration:.6f},\n'+(f'quality-{quality}-' if quality else '')+f'segment-{segment["number"]:06d}.ts\n'
                     return self.reply(200,(text+'#EXT-X-ENDLIST\n').encode(),'application/vnd.apple.mpegurl')
                 if filename=='export.mp4' and access!='admin': return self.reply(404,{'message':'Not found'})
                 file=service.root/pid/filename

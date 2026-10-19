@@ -165,6 +165,10 @@ def update_overlays(database: dict[str, Any], state: dict[str, Any], now: float)
         for mode, settings, target in targets:
             template = settings.get("template", "")
             if not settings.get("enabled") or not isinstance(template, str) or not template:
+                # Existing browser players keep polling this file. Removing it
+                # would leave their last successful text visible on HTTP errors.
+                if mode == "player" and target.exists() and target.read_text(encoding="utf-8").strip():
+                    atomic_write(target, "")
                 continue
 
             active_channels.add(channel_id)
@@ -184,6 +188,8 @@ def update_overlays(database: dict[str, Any], state: dict[str, Any], now: float)
             payloads: dict[str, Any] = {}
             failed = False
             for name, url in parse_sources(settings.get("sources")).items():
+                if mode == "player" and name not in {match.group(1) for match in TOKEN.finditer(template)}:
+                    continue
                 try:
                     payloads[name] = fetch_json(url)
                 except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError) as error:

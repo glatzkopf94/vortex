@@ -102,6 +102,10 @@ class Service:
             self.db.execute('ALTER TABLE channels ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
         if 'armed' not in {row['name'] for row in self.db.execute('PRAGMA table_info(channels)')}:
             self.db.execute('ALTER TABLE channels ADD COLUMN armed INTEGER NOT NULL DEFAULT 1')
+        saved_quota=self.db.execute("SELECT value FROM global_settings WHERE key='quotaBytes'").fetchone()
+        if saved_quota:
+            value=json.loads(saved_quota['value'])
+            if type(value) is int and 1024**3<=value<=10000*1024**3:self.quota=value
         self.db.commit()
         self.capture_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.render_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -223,6 +227,15 @@ class Service:
                     raise ValueError('Bitrate muss zwischen 256 und 20000 kbit/s liegen.')
             self.write('INSERT OR REPLACE INTO global_settings VALUES(?,?)',('qualities',json.dumps(value)))
             return self.global_settings()
+        if action=='configure_storage':
+            value=request.get('quotaGiB')
+            if type(value) is not int or not 1<=value<=10000:
+                raise ValueError('Zeitrafferlimit muss eine ganze Zahl von 1 bis 10000 GiB sein.')
+            self.write('INSERT OR REPLACE INTO global_settings VALUES(?,?)',('quotaBytes',json.dumps(value*1024**3)))
+            self.quota=value*1024**3
+            self.last_usage=(0,0)
+            self.render_retry.clear()
+            return {'quotaBytes':self.quota}
         if action=='configure_retention':
             days=request.get('days')
             if type(days) is not int or days not in (0,1,3,7): raise ValueError('Aufbewahrung muss nie, 1, 3 oder 7 Tage sein.')
@@ -349,6 +362,12 @@ class Service:
             self.last_usage=(now,usage)
         return self.last_usage[1]+extra < self.quota and shutil.disk_usage(self.root).free > self.min_free+extra
 
+    def require_space(self, extra=0):
+        if self.enough_space(extra):return
+        if self.last_usage[1]+extra>=self.quota:
+            raise ValueError(f'Zeitrafferlimit erreicht ({self.last_usage[1]/1024**3:.2f} / {self.quota/1024**3:.1f} GiB). Limit erhöhen oder alte Aufnahmen löschen.')
+        raise ValueError(f'Freie Festplattenreserve unterschritten ({self.min_free/1024**3:.1f} GiB). Speicherplatz freigeben.')
+
     def global_settings(self):
         rows=self.rows('SELECT value FROM global_settings WHERE key=?',('includeBurnedOverlays',))
         retention=self.rows('SELECT value FROM global_settings WHERE key=?',('retentionDays',))
@@ -389,7 +408,7 @@ class Service:
             # Existing encoded segments retain their original bitrate.
             cfg=self.quality_settings()
             if not cfg['enabled']:return
-            if not self.enough_space(64*1024**2):raise ValueError('Speicherreserve für Vorschauqualitäten erreicht.')
+            self.require_space(64*1024**2)
             for segment in segments:
                 for q,w in ((1080,1920),(720,1280)):
                     if self.rows('SELECT number FROM quality_segments WHERE project=? AND quality=? AND number=?',(pid,q,segment['number'])):continue
@@ -397,7 +416,7 @@ class Service:
                     if not cfg['enabled']:return
                     bitrate=cfg[f'bitrate{q}'];s=json.loads(p['settings'])
                     expected=int(segment['frames']/s['fps']*bitrate*125*1.5)+16*1024**2
-                    if not self.enough_space(expected):raise ValueError('Speicherreserve für Vorschauqualität erreicht.')
+                    self.require_space(expected)
                     name=f"quality-{q}-segment-{segment['number']:06d}.ts"
                     target=folder/name;tmp=folder/('.'+name)
                     filters=f'scale={w}:{q}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={w}:{q}:(ow-iw)/2:(oh-ih)/2,setsar=1'
@@ -407,13 +426,13 @@ class Service:
                             while output.tell()<188*64:output.write(b'\x47\x1f\xff\x10'+b'\xff'*184)
                         os.replace(tmp,target)
                         self.write('INSERT OR REPLACE INTO quality_segments VALUES(?,?,?,?)',(pid,q,segment['number'],bitrate))
-                        self.write("UPDATE projects SET error='' WHERE id=?",(pid,))
+                        self.write("UPDATE projects SET error='' WHERE id=? AND error NOT LIKE 'Aufnahmeluecke:%'",(pid,))
                         self.last_usage=(0,0)
                     finally:tmp.unlink(missing_ok=True)
                     return # One segment per job; original rendering always has priority.
         except Exception as error:
             self.render_retry[pid]=time.time()+60
-            self.write('UPDATE projects SET error=? WHERE id=?',('Vorschauqualität: '+str(error)[:200],pid))
+            self.write("UPDATE projects SET error=? WHERE id=? AND error NOT LIKE 'Aufnahmeluecke:%'",('Vorschauqualität: '+str(error)[:200],pid))
 
     def cleanup_retention(self, now):
         # Called under the scheduler lock, before launching workers. Never delete
@@ -531,7 +550,7 @@ class Service:
         folder=self.root/p['id']; folder.mkdir(exist_ok=True)
         path=folder/f'{slot}.jpg'; temp=folder/f'.{slot}.capture.jpg'
         try:
-            if not self.enough_space(16*1024**2): raise ValueError('Speicherreserve erreicht; Aufnahme pausiert bis Platz verfuegbar ist.')
+            self.require_space(16*1024**2)
             s=json.loads(p['settings'])
             if 'sourceBitrate' not in s:
                 sw,sh,rate=self.source_format(p['channel'])
@@ -588,7 +607,7 @@ class Service:
         s=json.loads(p['settings']); seq=len(self.rows('SELECT number FROM segments WHERE project=?',(p['id'],)))
         work=folder/'work'; work.mkdir(exist_ok=True)
         try:
-            if not self.enough_space(32*1024**2): raise ValueError('Speicherreserve fuer Verarbeitung erreicht')
+            self.require_space(32*1024**2)
             if frames:
                 if not (folder/'poster.jpg').is_file():
                     atomic(folder/'poster.jpg',Path(frames[-1]['path']).read_bytes())
@@ -625,11 +644,11 @@ class Service:
                 self.write("UPDATE projects SET export=0,nas='',exported=? WHERE id=?",(sum(x['frames'] for x in segments),p['id']))
             if p['export'] and not frames and not segments:
                 self.write("UPDATE projects SET export=0,error='Noch keine Bilder fuer den Export vorhanden.' WHERE id=?",(p['id'],))
-            self.write("UPDATE projects SET error='' WHERE id=?",(p['id'],))
+            self.write("UPDATE projects SET error='' WHERE id=? AND error NOT LIKE 'Aufnahmeluecke:%'",(p['id'],))
             self.render_retry.pop(p['id'],None)
         except Exception as e:
             self.render_retry[p['id']]=time.time()+60
-            self.write('UPDATE projects SET error=? WHERE id=?',(f'Verarbeitung: {type(e).__name__}: {str(e)[:200]}',p['id']))
+            self.write("UPDATE projects SET error=? WHERE id=? AND error NOT LIKE 'Aufnahmeluecke:%'",(f'Verarbeitung: {type(e).__name__}: {str(e)[:200]}',p['id']))
         finally:
             self.processing.pop(p['id'],None)
             for link in work.glob('*.jpg'): link.unlink(missing_ok=True)

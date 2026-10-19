@@ -27,6 +27,7 @@
     var preview = null;
     var closed = false;
     var clearMarkers = function(){};
+    var clearFullscreen = function(){};
     var markerRequest = 0;
     var controller = new AbortController();
     function close(resume) {
@@ -34,6 +35,7 @@
       closed = true;
       controller.abort();
       clearMarkers();
+      clearFullscreen();
       if (preview) preview.dispose();
       root.remove();
       window.nklTimelapseClose = null;
@@ -45,7 +47,7 @@
     }
     window.nklTimelapseClose = close;
     root.querySelector('.nkl-live-return').onclick = function () { close(true); };
-    root.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(true); });
+    root.addEventListener('keydown', function (event) { if (event.key === 'Escape' && !(context.player.isFullscreen && context.player.isFullscreen())) close(true); });
     async function show(preserve) {
       var option = select.options[select.selectedIndex];
       if (!option || option.disabled) return;
@@ -53,6 +55,19 @@
       root.querySelector('video').hidden = false;
       if (!preview) {
         preview = videojs(root.querySelector('video'), {controls:true, autoplay:false, preload:'none', loop:false, fluid:false});
+        // The toolbar is a sibling of the preview. Fullscreen the enclosing
+        // live player so date, quality and refresh remain available.
+        var fullscreenToggle=preview.controlBar && preview.controlBar.fullscreenToggle;
+        if(fullscreenToggle && context.player.requestFullscreen){
+          fullscreenToggle.handleClick=function(){
+            var result=context.player.isFullscreen()?context.player.exitFullscreen():context.player.requestFullscreen();
+            if(result && result.catch)result.catch(function(){message.textContent='Vollbild konnte nicht geöffnet werden.';});
+          };
+          var syncFullscreen=function(){fullscreenToggle.controlText(context.player.isFullscreen()?'Non-Fullscreen':'Fullscreen');};
+          context.player.on('fullscreenchange',syncFullscreen);
+          clearFullscreen=function(){context.player.off('fullscreenchange',syncFullscreen);};
+          syncFullscreen();
+        }
         if (window.nklConfigureTimelapseBuffer) window.nklConfigureTimelapseBuffer(preview);
         preview.on('play', context.onPlay);
         preview.on('pause', context.onPause);

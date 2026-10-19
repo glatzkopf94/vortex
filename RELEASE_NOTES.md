@@ -1,12 +1,10 @@
-# Vortex 1.5 Beta / 0.3.0-dev30
+# Vortex 1.5 Beta / 0.3.0-dev31
 
-- Neue Zeitrafferkanäle starten erst nach Speichern der Einstellungen und ausdrücklichem Klick auf Aufnahme starten. Bestehende Aufnahmepläne bleiben aktiv.
-- Zeitrafferplayer mit Originalauflösung, 1080p (3072 kbit/s) und 720p (2048 kbit/s). Zahnrad zur Auswahl; 1080p wird bevorzugt, sobald bereit. Position bleibt beim Wechsel erhalten.
-- Transcoding global abschaltbar, Bitraten konfigurierbar. Änderungen gelten für neue Verarbeitungsaufträge. Bestehende Projekte werden nachverarbeitet; zusätzliche Dateien benötigen CPU und Speicher.
-- Zusatzqualitäten laden bis zu 60 Wiedergabesekunden voraus, mit bitrateabhängiger Begrenzung. Originaldateien und Downloads bleiben unverändert.
-- Einheitliche Buttonfarben, FTP-Link, Rückmeldungen, bündige Player-Buttons und getrennte Bereiche Transcoding / Kanal-Einstellungen. Deutsche Updatebezeichnungen heißen Vortex-Updates.
-- Auflösungsermittlung funktioniert mit dem vorhandenen FFmpeg ohne ffprobe.
+- Zeitraffer-Speicherlimit in System > Zeitraffer > Alte Aufnahmen löschen einstellbar (1–10000 GiB). Änderungen gelten sofort und bleiben nach Neustarts erhalten. Ohne Änderung bleibt das bisherige Limit bestehen.
+- Speicherfehler unterscheiden das Zeitrafferlimit von der freien Festplattenreserve. Videoverarbeitung löscht oder überschreibt keine bestehenden Aufnahmefehler mehr.
+- Player-Overlay: Leeres Textfeld und Deaktivierung entfernen den bisher angezeigten Text auch in bereits geöffneten Playern. Unbenutzte JSON-Quellen blockieren reine Freitextänderungen nicht mehr.
+- Zeitraffer-Vollbild umfasst Tagesauswahl, Qualitätsmenü und Aktualisieren. Verlassen des Vollbilds erhält die Zeitraffervorschau.
 
-Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Bei neuen Kanälen Einstellungen speichern und Aufnahme starten. Vor Sonnenaufgang wartet der freigegebene Plan auf das konfigurierte Zeitfenster.
+Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Bei erreichtem 20-GiB-Limit das neue Feld auf einen zur verfügbaren Festplatte passenden Wert erhöhen und speichern, beispielsweise 40 GiB. Laufende Aufnahmepläne können beim nächsten Aufnahmeintervall fortfahren; entstandene Lücken werden nicht rückwirkend gefüllt.
 
-Hinweis: Ein manuell gelöschtes Tagesprojekt wird am selben Tag weiterhin nicht automatisch neu angelegt. Diese bestehende Tagessperre wird durch das Update nicht entfernt; am Folgetag kann der Aufnahmeplan wieder starten.
+Aufbewahrungsregeln bleiben unverändert: Bei fester Tagesfrist werden jüngere Aufnahmen nicht vorzeitig gelöscht. Bei Nie bleibt die bestehende Ringpufferlöschung aktiv. Die freie Festplattenreserve bleibt geschützt. Natives Browser-PiP bleibt unverändert und übernimmt keine HTML-Overlays.

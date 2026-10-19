@@ -159,6 +159,28 @@ class LivechasingManagerTest(unittest.TestCase):
             finally:
                 MANAGER.DATA_DIR = old_data_dir
 
+    def test_player_text_clear_disable_and_static_edit_with_unused_source(self):
+        channel = "8672be5b-5a35-4a56-a970-877d7d728983"
+        settings = {"enabled": True, "template": "Old text", "sources": "unused=https://example.test/offline"}
+        database = {"metadata": {"process": {f"restreamer-ui:ingest:{channel}": {"restreamer-ui": {"player": {"overlay": settings}}}}}}
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(MANAGER, "DATA_DIR", pathlib.Path(directory)), mock.patch.object(MANAGER, "fetch_json", side_effect=OSError("offline")) as fetch:
+            state = {}
+            target = pathlib.Path(directory) / "channels" / channel / "player-overlay.txt"
+            MANAGER.update_overlays(database, state, 100)
+            self.assertEqual(target.read_text().strip(), "Old text")
+            settings["template"] = ""
+            MANAGER.update_overlays(database, state, 101)
+            self.assertTrue(target.exists())
+            self.assertEqual(target.read_text().strip(), "")
+            self.assertEqual(state, {})
+            settings["template"] = "New text"
+            MANAGER.update_overlays(database, state, 102)
+            self.assertEqual(target.read_text().strip(), "New text")
+            settings["enabled"] = False
+            MANAGER.update_overlays(database, state, 103)
+            self.assertEqual(target.read_text().strip(), "")
+            fetch.assert_not_called()
+
     def test_dvr_purge_removes_only_channel_hls_content(self):
         channel = "8672be5b-5a35-4a56-a970-877d7d728983"
         other = "2579719c-8d8b-4f59-a936-3048b181710b"

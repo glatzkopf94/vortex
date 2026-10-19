@@ -428,6 +428,33 @@ class TimelapseTests(unittest.TestCase):
         self.service.schedule(now+86400)
         self.assertEqual(len(self.service.status()['projects']),2)
         self.assertEqual(self.service.status()['projects'][-1]['status'],'finished')
+    def test_storage_limit_persists_and_distinguishes_disk_reserve(self):
+        self.service.last_usage=(time.time(),1024**3)
+        with self.assertRaisesRegex(ValueError,'Zeitrafferlimit'):
+            self.service.require_space()
+        self.service.action({'action':'configure_storage','quotaGiB':40})
+        self.assertEqual(self.service.quota,40*1024**3)
+        self.assertTrue(self.service.enough_space())
+        for value in (0,-1,10001,True,1.5,'40'):
+            with self.assertRaises(ValueError):self.service.action({'action':'configure_storage','quotaGiB':value})
+        self.service.close()
+        self.service=Service(self.root/'state',self.db,self.root/'data',min_free=0,quota=1024**3)
+        self.assertEqual(self.service.quota,40*1024**3)
+        self.service.min_free=10**18
+        with self.assertRaisesRegex(ValueError,'Festplattenreserve'):
+            self.service.require_space()
+
+    def test_render_preserves_capture_error(self):
+        pid=self.project()
+        self.frame(pid,1800000000);self.frame(pid,1800000030)
+        error='Aufnahmeluecke: ValueError: Zeitrafferlimit erreicht'
+        self.service.write('UPDATE projects SET error=? WHERE id=?',(error,pid))
+        p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
+        self.service.render(p)
+        self.assertEqual(self.service.rows('SELECT error FROM projects WHERE id=?',(pid,))[0]['error'],error)
+        self.service.render_quality(p)
+        self.assertEqual(self.service.rows('SELECT error FROM projects WHERE id=?',(pid,))[0]['error'],error)
+
     def test_capture_failure_recovery_and_quota(self):
         pid=self.project(); p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
         self.service.capture(p,1800000000)

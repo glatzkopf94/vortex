@@ -222,7 +222,10 @@ class PlayerUITest(unittest.TestCase):
         global_theme = (ROOT / "ui/src/theme/global.js").read_text(encoding="utf-8")
         background = ROOT / "ui/src/assets/images/vortex-background.jpg"
 
-        self.assertIn('"nklVersion": "1.5 Beta"', package)
+        release = (ROOT / "release.env").read_text(encoding="utf-8")
+        label = re.search(r'^PRODUCT_LABEL="Vortex (.+)"$', release, re.MULTILINE)
+        self.assertIsNotNone(label)
+        self.assertEqual(json.loads(package)["nklVersion"], label.group(1))
         self.assertIn("`Vortex ${pkg.nklVersion || Version}`", version)
         self.assertIn("vortex-background.jpg", global_theme)
         self.assertTrue(background.is_file())

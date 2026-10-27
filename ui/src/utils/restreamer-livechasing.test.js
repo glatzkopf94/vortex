@@ -1,5 +1,6 @@
 import Restreamer, { countUniqueHLSViewers, getHLSSegmentCleanupAge, getIngestRTSPStability, getPlayerAspectRatio, isDVRChannelId } from './restreamer';
 import { v4 as uuidv4 } from 'uuid';
+import * as M from './metadata';
 
 jest.mock('uuid', () => ({
 	v4: jest.fn(),
@@ -154,4 +155,64 @@ test('global DVR cleanup selects only DVR-enabled channels', async () => {
 	await Restreamer.prototype.PurgeAllDVR.call(context);
 
 	expect(context.PurgeDVRChannels).toHaveBeenCalledWith([enabled]);
+});
+
+function hevcContext() {
+ return {GetChannel:()=>({id:'restreamer-ui:ingest:camera',channelid:'camera'}),
+ ConfigActive:()=>({source:{network:{rtmp:{enabled:false},srt:{enabled:false}}}}),
+ GetPublicHTTPAddress:()=> 'https://test.example', SetChannel:jest.fn(),
+ _upsertProcess:jest.fn(async()=>[{},null]), _startProcess:jest.fn(async()=>true), _stopProcess:jest.fn(async()=>true)};
+}
+function hevcControl(dvr=false) {
+ return {hls:{storage:dvr?'diskfs':'memfs',version:3,lhls:false,master_playlist:true,segmentDuration:2,listSize:6,cleanup:true,dvr:{enabled:dvr,hours:4}},
+ process:{autostart:true,reconnect:true,delay:2,staleTimeout:30},limits:{cpu_usage:0,memory_mbytes:0,waitfor_seconds:5},rtmp:{enable:false},srt:{enable:false},
+ preview:{enable:true,fallbackOnly:true,height:720,bitrate:2048,video_encoder:'libx264',audio_encoder:'aac'}};
+}
+test('HEVC passthrough copies video to fMP4 with hvc1; AVC path remains TS', async()=>{
+ for(const codec of ['hevc','h264']) {
+  const ctx=hevcContext(), control=hevcControl(true);
+  const [,err]=await Restreamer.prototype.UpsertIngest.call(ctx,'camera',[],[{address:'rtsp://test/live',options:[]}],[{videoCodec:codec,options:['-map','0:v:0','-codec:v','copy','-an']}],control);
+  expect(err).toBeNull();
+  const proc=ctx._upsertProcess.mock.calls[0][1], out=proc.output[0];
+  expect(out.options).toEqual(expect.arrayContaining(['-codec:v','copy']));
+  expect(out.options.includes('fmp4')).toBe(codec==='hevc');
+  if(codec==='hevc') {
+   expect(out.options).toEqual(expect.arrayContaining(['-tag:v','hvc1']));
+   expect(out.address).toMatch(/_hevc_\d+\.m3u8$/);
+   expect(out.cleanup.find(c=>c.pattern.includes('_hevc_')&&c.pattern.endsWith('.mp4')&&!c.pattern.includes('*')).max_file_age_seconds).toBe(0);
+  }
+ }
+});
+test('fallback is reduced once per channel, has DVR when enabled and stops when disabled', async()=>{
+ const ctx=hevcContext(), control=hevcControl(true);
+ await Restreamer.prototype.UpsertIngestPreview.call(ctx,'camera',control);
+ const out=ctx._upsertProcess.mock.calls[0][1].output[0];
+ expect(out.address).toBe('{diskfs}/camera_output_0_h264.m3u8');
+ expect(out.options).toEqual(expect.arrayContaining(['scale=-2:min(ih\\,720)','2048k','-hls_list_size','7200','-hls_max_window_duration','14400']));
+ expect(ctx._startProcess).toHaveBeenCalledWith('restreamer-ui:ingest:camera_h264');
+ control.preview.enable=false;
+ await Restreamer.prototype.UpsertIngestPreview.call(ctx,'camera',control);
+ expect(ctx._stopProcess).toHaveBeenCalledWith('restreamer-ui:ingest:camera_h264');
+ expect(ctx._upsertProcess.mock.calls[1][1].autostart).toBe(false);
+});
+
+test('player configuration keeps the original and publishes optional fallback in its actual storage', async()=>{
+ const ctx={InitPlayerSettings:Restreamer.prototype.InitPlayerSettings,GetChannelManifestPath:(id,storage)=>storage+'/'+id+'.m3u8',GetChannelPosterPath:()=>'',_uploadAssetData:jest.fn()};
+ for(const enabled of [false,true]) {
+  const control=hevcControl(true);control.preview.enable=enabled;
+  await Restreamer.prototype.UpdatePlayerConfig.call(ctx,'camera',{player:{},control,streams:[{type:'video',codec:'hevc'}],license:'',meta:{name:'Test',author:{name:''}}});
+  const config=JSON.parse(ctx._uploadAssetData.mock.calls.at(-1)[1].replace('var playerConfig = ',''));
+  expect(config.source).toBe('diskfs/camera.m3u8');
+  expect(config.videoCodec).toBe('hevc');
+  expect(config.fallbackSource).toBe(enabled?'diskfs/camera_h264.m3u8':'');
+ }
+});
+
+test('HEVC source defaults to passthrough and a new fallback is opt-in',()=>{
+ const metadata=M.getDefaultIngestMetadata();
+ expect(metadata.control.preview.enable).toBe(false);
+ expect(metadata.control.preview.fallbackOnly).toBe(true);
+ const profile=M.initProfile();
+ const result=M.preselectProfile('video',[{type:'video',codec:'hevc',width:3840,height:2160}],profile,{video:['libx264'],audio:['aac']},false);
+ expect(result.video.encoder.coder).toBe('copy');
 });

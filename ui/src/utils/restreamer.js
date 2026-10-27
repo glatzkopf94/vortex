@@ -1788,7 +1788,10 @@ class Restreamer {
 			return false;
 		}
 
-		return await this._startProcess(channel.id);
+		const started = await this._startProcess(channel.id);
+		const metadata = await this.GetIngestMetadata(channelid);
+		if (started && metadata.control.preview?.enable) await this._startProcess(channel.id + '_h264');
+		return started;
 	}
 
 	// Start the ingest snapshot process
@@ -1808,6 +1811,7 @@ class Restreamer {
 			return false;
 		}
 
+		await this._stopProcess(channel.id + '_h264');
 		return await this._stopProcess(channel.id);
 	}
 
@@ -1828,6 +1832,7 @@ class Restreamer {
 			return false;
 		}
 
+		await this._deleteProcess(channel.id + '_h264');
 		return await this._deleteProcess(channel.id);
 	}
 
@@ -1848,6 +1853,16 @@ class Restreamer {
 			return [null, { message: 'Unknown channel ID' }];
 		}
 
+		const hevc = ['hevc', 'h265'].includes(outputs[0]?.videoCodec);
+		if (hevc) {
+			control.hls.hevcAuto = true;
+			control.hls.version = 7;
+			control.hls.lhls = false;
+			control.hls.master_playlist = true;
+		} else if (control.hls.hevcAuto) {
+			control.hls.version = 3;
+			control.hls.hevcAuto = false;
+		}
 		const rtspStability = getIngestRTSPStability(inputs, control.process.reconnect);
 		const processOptions = ['-loglevel', 'level+info', '-err_detect', rtspStability.decoderErrorMode];
 		if (rtspStability.exitOnError) processOptions.push('-xerror');
@@ -1901,6 +1916,10 @@ class Restreamer {
 			control.rtmp.enable = true;
 		}
 
+		if (hevc && rtmp_enabled) {
+			return [null, { message: 'H.265-Passthrough benötigt HLS/fMP4. Bitte den internen RTMP-Ausgang unter Verarbeitung & Steuerung deaktivieren.' }];
+		}
+
 		// 1.3 Fetch srt settings
 		const srt_config = core_config.source.network.srt;
 		let srt_enabled = false;
@@ -1942,9 +1961,16 @@ class Restreamer {
 			segmentFilePath = `${channel.channelid}` + (control.hls.master_playlist ? `/{outputid}/%Y%m%d/%s` : '/%Y%m%d/%s');
 		}
 
+		// Separate codec/config generations: never append HEVC/fMP4 to an old AVC/TS playlist.
+		const hevcGeneration = hevc ? `_hevc_${Date.now()}` : '';
+		if (hevc) {
+			segmentPlaylistPath += hevcGeneration;
+			segmentFilePath = segmentFilePath.replace('{outputid}', `{outputid}${hevcGeneration}`);
+		}
+
 		// 1.6 Set hls filenames
 		const hls_master_playlist = `${channel.channelid}.m3u8`;
-		const hls_fmp4_init_filename = `${channel.channelid}.mp4`;
+		const hls_fmp4_init_filename = `${channel.channelid}${hevcGeneration}.mp4`;
 		const hls_segment_playlist = `{${hlsStorage}}/${segmentPlaylistPath}.m3u8`;
 		const hls_segment_filename =
 			`{${hlsStorage}` + (tee_muxer ? '^:' : '') + `}/${segmentFilePath}.` + (!control.hls.lhls && control.hls.version === 7 ? 'mp4' : 'ts');
@@ -1957,6 +1983,15 @@ class Restreamer {
 			options: ['-dn', '-sn', ...outputs[0].options.map((o) => '' + o)],
 			cleanup: [],
 		};
+
+		if (hevc) {
+			output.options.push('-tag:v', 'hvc1');
+			// RTSP often has no bit_rate. HLS otherwise emits an empty master.
+			// With codec=copy this is only a muxer bandwidth hint, never encoding.
+			if (['-codec:v', '-c:v'].some((key) => output.options.includes(key) && output.options[output.options.indexOf(key) + 1] === 'copy') && !output.options.includes('-b:v')) {
+				output.options.push('-b:v', `${Math.max(256, Number(outputs[0].videoBitrate) || 8192)}k`);
+			}
+		}
 
 		// 3. Extend output options
 
@@ -2099,12 +2134,14 @@ class Restreamer {
 			cleanupSegmentFilePath = `${channel.channelid}` + (control.hls.master_playlist ? `/{outputid}/**` : '/**');
 		}
 
+		if (hevc) cleanupSegmentFilePath = cleanupSegmentFilePath.replace('{outputid}', `{outputid}${hevcGeneration}`);
+
 		// 4.2 Set hls cleanup filenames
 		// Only media belongs to process cleanup; UUID.html is a persistent player.
 		const cleanup_global = ['.m3u8', '.mp4', '_*.m3u8', '_*.ts', '_*.mp4', '/**.ts', '/**.mp4']
 			.map((suffix) => ({ pattern: `${hlsStorage}:/${channel.channelid}${suffix}`, purge_on_delete: true }));
 		const cleanup_hls_master_playlist = `${hlsStorage}:/${channel.channelid}.m3u8`;
-		const cleanup_hls_fmp4_init_filename = `${hlsStorage}:/${channel.channelid}.mp4`;
+		const cleanup_hls_fmp4_init_filename = `${hlsStorage}:/${hls_fmp4_init_filename}`;
 		const cleanup_hls_segment_playlist = `${hlsStorage}:/${segmentPlaylistPath}.m3u8`;
 		const cleanup_hls_segment_filename = `${hlsStorage}:/${cleanupSegmentFilePath}.` + (!control.hls.lhls && control.hls.version === 7 ? 'mp4' : 'ts');
 
@@ -2143,7 +2180,7 @@ class Restreamer {
 			if (!control.hls.lhls && control.hls.version === 7) {
 				output.cleanup.push({
 					pattern: cleanup_hls_fmp4_init_filename,
-					max_file_age_seconds: getHLSSegmentCleanupAge(control),
+					max_file_age_seconds: 0,
 					purge_on_delete: true,
 				});
 			}
@@ -2224,87 +2261,49 @@ class Restreamer {
 		// Set hls storage endpoint
 		const hlsStorage = control.hls.storage;
 
-		// Set encoder settings
-		const video_encoder = control.preview.video_encoder;
-		const audio_encoder = control.preview.audio_encoder;
-
+		const enabled = control.preview.enable === true;
+		const fallback = control.preview.fallbackOnly === true;
+		const dvr = control.hls.dvr?.enabled === true;
+		const targetStorage = dvr ? 'diskfs' : 'memfs';
+		const height = [360, 480, 720, 1080, 1440].includes(Number(control.preview.height)) ? Number(control.preview.height) : 720;
+		const bitrate = Math.min(12000, Math.max(256, parseInt(control.preview.bitrate, 10) || 2048));
+		const hours = Math.min(168, Math.max(1, parseInt(control.hls.dvr?.hours, 10) || 4));
+		const duration = 2;
+		const listSize = dvr ? Math.ceil(hours * 3600 / duration) : 6;
+		const segment = dvr ? `${channel.channelid}/fallback/%Y%m%d/%s.ts` : `${channel.channelid}_output_0_h264_%04d.ts`;
 		const preview = {
-			type: 'ffmpeg',
-			id: channel.id + '_h264',
-			reference: channel.channelid,
-			input: [
-				{
-					id: 'input_0',
-					address: `{${hlsStorage}}/${channel.channelid}.m3u8`,
-					options: [],
-				},
-			],
-			output: [
-				{
-					id: 'output_0',
-					address: `{memfs}/${channel.channelid}_output_0_h264.m3u8`,
-					options: [
-						'-c:v',
-						`${video_encoder}`,
-						'-r',
-						'25',
-						'-g',
-						'50',
-						'-sc_threshold',
-						'0',
-						'-pix_fmt',
-						'yuv420p',
-						'-c:a',
-						`${audio_encoder}`,
-						'-f',
-						'hls',
-						'-start_number',
-						'0',
-						'-hls_time',
-						'2',
-						'-hls_list_size',
-						'6',
-						'-hls_flags',
-						'append_list+delete_segments+program_date_time+temp_file',
-						'-hls_delete_threshold',
-						'4',
-						'-hls_segment_filename',
-						`{memfs}/${channel.channelid}_output_0_h264_%04d.ts`,
-						'-master_pl_name',
-						`${channel.channelid}_h264.m3u8`,
-						'-master_pl_publish_rate',
-						'2',
-					],
-					cleanup: [
-						{
-							pattern: `memfs:/${channel.channelid}_h264.m3u8`,
-							purge_on_delete: true,
-						},
-						{
-							pattern: `memfs:/${channel.channelid}_output_0_h264.m3u8`,
-							purge_on_delete: true,
-						},
-						{
-							pattern: `memfs:/${channel.channelid}_output_0_h264_*.ts`,
-							max_files: 12,
-							purge_on_delete: true,
-						},
-					],
-				},
-			],
+			type: 'ffmpeg', id: channel.id + '_h264', reference: channel.channelid,
+			input: [{id: 'input_0', address: `{${hlsStorage}}/${channel.channelid}.m3u8`, options: ['-live_start_index', '-3']}],
+			output: [{
+				id: 'output_0', address: `{${targetStorage}}/${channel.channelid}_output_0_h264.m3u8`,
+				options: [
+					'-map', '0:v:0', '-map', '0:a:0?', '-dn', '-sn',
+					'-c:v', fallback ? 'libx264' : control.preview.video_encoder,
+					...(fallback ? ['-preset', 'veryfast', '-threads', '2', '-vf', `scale=-2:min(ih\\,${height})`, '-b:v', `${bitrate}k`, '-maxrate', `${bitrate}k`, '-bufsize', `${bitrate * 2}k`] : []),
+					'-r', '25', '-g', '50', '-sc_threshold', '0', '-pix_fmt', 'yuv420p',
+					'-c:a', 'aac', '-b:a', '96k', '-ac', '2',
+					'-f', 'hls', '-hls_time', '2', '-hls_list_size', String(listSize),
+					'-hls_flags', 'append_list+delete_segments+program_date_time+temp_file+discont_start',
+					'-hls_delete_threshold', '4',
+					...(dvr ? ['-strftime', '1', '-strftime_mkdir', '1', '-hls_max_window_duration', String(hours * 3600)] : []),
+					'-hls_segment_filename', `{${targetStorage}}/${segment}`,
+					'-master_pl_name', `${channel.channelid}_h264.m3u8`, '-master_pl_publish_rate', '2',
+				],
+				cleanup: [
+					{pattern: `${targetStorage}:/${channel.channelid}_h264.m3u8`, purge_on_delete: true},
+					{pattern: `${targetStorage}:/${channel.channelid}_output_0_h264.m3u8`, purge_on_delete: true},
+					{pattern: `${targetStorage}:/${dvr ? channel.channelid + '/fallback/**.ts' : channel.channelid + '_output_0_h264_*.ts'}`, max_files: dvr ? 0 : 12, purge_on_delete: true},
+				],
+			}],
 			options: ['-err_detect', 'ignore_err'],
-			autostart: control.preview.enable ? control.process.autostart : false,
-			reconnect: control.preview.enable ? control.process.reconnect : false,
-			reconnect_delay_seconds: 2,
-			stale_timeout_seconds: 5,
+			autostart: enabled && control.process.autostart,
+			reconnect: enabled, reconnect_delay_seconds: 2, stale_timeout_seconds: 30,
 		};
 
 		const [val, err] = await this._upsertProcess(channel.id + '_h264', preview);
-		if (err !== null) {
-			return [val, err];
-		}
-
-		return [val, null];
+		if (err !== null) return [val, err];
+		const changed = preview.autostart ? await this._startProcess(channel.id + '_h264') : await this._stopProcess(channel.id + '_h264');
+		return changed ? [val, null] : [val, {message: 'H.264-Zusatzstream konnte nicht gestartet/gestoppt werden.'}];
 	}
 
 	// Check whether the manifest of the ingest process is available
@@ -2576,7 +2575,9 @@ class Restreamer {
 
 		// use h264 preview stream if enabled
 		const dvrEnabled = metadata.control.hls?.dvr?.enabled === true;
-		const channel_id_h264 = metadata.control.preview?.enable && !dvrEnabled ? `${channelid}_h264` : channelid;
+		const fallbackOnly = metadata.control.preview?.fallbackOnly === true;
+		const channel_id_h264 = metadata.control.preview?.enable && !fallbackOnly ? `${channelid}_h264` : channelid;
+		const previewStorage = dvrEnabled ? 'diskfs' : 'memfs';
 
 		const overlay = metadata.player.overlay;
 		const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
@@ -2602,7 +2603,9 @@ class Restreamer {
 		const playerConfig = {
 			...metadata.player,
 			channelid,
-			source: this.GetChannelManifestPath(channel_id_h264, metadata.control.hls.storage),
+			source: this.GetChannelManifestPath(channel_id_h264, channel_id_h264 === channelid ? metadata.control.hls.storage : previewStorage),
+			videoCodec: metadata.streams?.find((s) => s.type === 'video')?.codec || '',
+			fallbackSource: metadata.control.preview?.enable && fallbackOnly ? this.GetChannelManifestPath(`${channelid}_h264`, previewStorage) : '',
 			poster: this.GetChannelPosterPath(channelid, metadata.control.hls.storage),
 			license: {
 				license: metadata.license,

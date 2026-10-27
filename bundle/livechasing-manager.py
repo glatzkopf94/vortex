@@ -371,6 +371,15 @@ def referenced_dvr_segments(channel_id: str, expired_before: float | None = None
         media_playlists += 1
         for line in content.splitlines():
             line = line.strip()
+            if line.startswith('#EXT-X-MAP:'):
+                match = re.search(r'URI="([^"\n]+)"', line)
+                if not match:
+                    return None
+                uri = urlsplit(match.group(1)).path.lstrip("/")
+                if ".." in Path(uri).parts:
+                    return None
+                references.add(DATA_DIR / uri)
+                continue
             if not line or line.startswith("#"):
                 continue
             uri = urlsplit(line).path.lstrip("/")

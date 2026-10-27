@@ -6,6 +6,8 @@ import attachDVRMarkers from './dvrMarkers';
 export default function Player({
 	type = 'videojs-internal',
 	source = '',
+	fallbackSource = '',
+	videoCodec = '',
 	poster = '',
 	controls = false,
 	autoplay = false,
@@ -26,6 +28,8 @@ export default function Player({
 
 	if (type === 'videojs-internal' || type === 'videojs-public') {
 		const config = {
+			fallbackSource,
+			videoCodec,
 			controls: controls,
 			poster: poster,
 			autoplay: type === 'videojs-internal' ? true : autoplay ? (mute === 'muted' ? true : false) : false,

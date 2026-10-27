@@ -9,12 +9,14 @@ import './styles';
 export default function VideoJS({ type = 'videojs-internal', options = {}, onReady = null }) {
 	const videoRef = React.useRef(null);
 	const playerRef = React.useRef(null);
+	const fallbackRef = React.useRef(false);
+	const retryTimer = React.useRef(null);
 
 	const retryVideo = () => {
 		const player = playerRef.current;
 		if (player) {
 			player.error(null); // Clear the error
-			player.src(options.sources); // Reload the source
+			player.src(fallbackRef.current ? [{src:options.fallbackSource, type:'application/x-mpegURL'}] : options.sources);
 			player.play(); // Attempt to play again
 		}
 	};
@@ -41,8 +43,14 @@ export default function VideoJS({ type = 'videojs-internal', options = {}, onRea
 			// retry on MEDIA_ERR_NETWORK = 2 || 4
 			player.on('error', () => {
 				const error = player.error();
+				if (error && [3,4].includes(error.code) && ['hevc','h265'].includes(options.videoCodec) && options.fallbackSource && !fallbackRef.current) {
+					fallbackRef.current = true;
+					retryVideo();
+					return;
+				}
 				if (error && (error.code === 2 || error.code === 4)) {
-					setTimeout(retryVideo, 2000);
+					clearTimeout(retryTimer.current);
+					retryTimer.current = setTimeout(retryVideo, 2000);
 				}
 			});
 		} else {
@@ -60,6 +68,7 @@ export default function VideoJS({ type = 'videojs-internal', options = {}, onRea
 
 		return () => {
 			if (player) {
+				clearTimeout(retryTimer.current);
 				player.dispose();
 				playerRef.current = null;
 			}

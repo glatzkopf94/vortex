@@ -297,6 +297,9 @@ const defaultIngestMetadata = {
 		},
 		preview: {
 			enable: false,
+			fallbackOnly: true,
+			height: 720,
+			bitrate: 2048,
 			video_encoder: 'libx264',
 			audio_encoder: 'aac',
 		},
@@ -502,6 +505,7 @@ const mergeIngestMetadata = (metadata, base) => {
 
 	metadata.control.preview = {
 		...base.control.preview,
+		fallbackOnly: !metadata.control.preview?.enable,
 		...metadata.control.preview,
 	};
 
@@ -753,6 +757,8 @@ const createInputsOutputs = (sources, profiles, requireVideo = true) => {
 		outputs.push({
 			address: '',
 			options: options,
+			videoCodec: profile.video.encoder.coder === 'copy' ? stream.codec : Coders.Video.Get(profile.video.encoder.coder)?.codec,
+			videoBitrate: stream.bitrate_kbps || 0,
 		});
 	}
 
@@ -1129,7 +1135,7 @@ const preselectProfile = (type, streams, profile, encoders, preselectAudio = tru
 			return false;
 		}
 
-		if (streams[video.stream].codec !== 'h264') {
+		if (!['h264', 'hevc', 'h265'].includes(streams[video.stream].codec)) {
 			if (video.encoder.coder === 'copy') {
 				return false;
 			}
@@ -1201,7 +1207,7 @@ const preselectProfile = (type, streams, profile, encoders, preselectAudio = tru
 				video.source = 0;
 				video.stream = i;
 
-				if (streams[i].codec === 'h264') {
+				if (['h264', 'hevc', 'h265'].includes(streams[i].codec)) {
 					video.encoder.coder = 'copy';
 				} else {
 					let coder = Coders.Video.GetCoderForCodec('h264', encoders.video);

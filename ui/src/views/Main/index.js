@@ -298,7 +298,7 @@ export default function Main({ restreamer = null }) {
 	const storage = $metadata.control.hls.storage;
 	const channel = restreamer.GetChannel(_channelid);
 	const manifest = restreamer.GetChannelAddress('hls+' + storage, _channelid);
-	const manifest_preview = restreamer.GetChannelAddress('hls+' + storage, `${_channelid}_h264`);
+	const manifest_preview = restreamer.GetChannelAddress('hls+' + ($metadata.control.hls.dvr?.enabled ? 'diskfs' : 'memfs'), `${_channelid}_h264`);
 	const poster = restreamer.GetChannelAddress('snapshot+' + storage, _channelid);
 
 	let title = <Trans>Main channel</Trans>;
@@ -402,67 +402,11 @@ export default function Main({ restreamer = null }) {
 												)}
 											</Grid>
 										)}
-										{$state.state === 'connected' && $state.progress.video_codec === 'h264' && !$metadata.control.preview.enable && (
-											<Player type="videojs-internal" source={manifest} poster={poster} autoplay mute controls />
-										)}
-										{$state.state === 'connected' && $state.progress.video_codec !== 'h264' && $metadata.control.preview.enable && (
-											<Player type="videojs-internal" source={manifest_preview} poster={poster} autoplay mute controls />
-										)}
-										{$state.state === 'connected' && $state.progress.video_codec !== 'h264' && !$metadata.control.preview.enable && (
-											<Grid
-												container
-												direction="column"
-												className={classes.playerL3}
-												justifyContent="center"
-												alignItems="center"
-												textAlign={'center'}
-												spacing={2}
-											>
-												<Grid item>
-													<WarningIcon className={classes.playerWarningIcon} />
-												</Grid>
-												<Grid item>
-													<Typography>
-														<Trans>No H.264 Stream availabe.</Trans>
-													</Typography>
-												</Grid>
-												<Grid item>
-													<Typography>
-														<Trans>
-															Please{' '}
-															<Link style={{ textDecoration: 'underline' }} onClick={() => navigate(`/${_channelid}/edit`)}>
-																edit
-															</Link>{' '}
-															this channel and enable the browser-compatible H.264 stream in the "Processing & Control" area.
-														</Trans>
-													</Typography>
-												</Grid>
-											</Grid>
-										)}
-										{$state.state === 'connected' && $state.progress.video_codec === 'h264' && $metadata.control.preview.enable && (
-											<Grid
-												container
-												direction="column"
-												className={classes.playerL3}
-												justifyContent="center"
-												alignItems="center"
-												spacing={2}
-											>
-												<Grid item>
-													<WarningIcon className={classes.playerWarningIcon} />
-												</Grid>
-												<Grid item>
-													<Typography>
-														<Trans>
-															Please{' '}
-															<Link style={{ textDecoration: 'underline' }} onClick={() => navigate(`/${_channelid}/edit`)}>
-																edit
-															</Link>{' '}
-															this channel and disable the second H.264 stream in the "Processing & Control" area.
-														</Trans>
-													</Typography>
-												</Grid>
-											</Grid>
+										{$state.state === 'connected' && (
+											<Player type="videojs-internal"
+												source={$metadata.control.preview.enable && !$metadata.control.preview.fallbackOnly ? manifest_preview : manifest}
+												fallbackSource={$metadata.control.preview.enable && $metadata.control.preview.fallbackOnly ? manifest_preview : ''}
+												videoCodec={$state.progress.video_codec} poster={poster} autoplay mute controls />
 										)}
 									</Grid>
 								</Grid>
@@ -507,7 +451,7 @@ export default function Main({ restreamer = null }) {
 												variant="outlined"
 												color="default"
 												size="small"
-												value={restreamer.GetPublicAddress('hls+' + storage, `${_channelid}_h264`)}
+												value={restreamer.GetPublicAddress('hls+' + ($metadata.control.hls.dvr?.enabled ? 'diskfs' : 'memfs'), `${_channelid}_h264`)}
 											>
 												<Trans>HLS @ H.264</Trans>
 											</CopyButton>

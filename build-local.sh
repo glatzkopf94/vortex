@@ -82,17 +82,17 @@ echo "[1/5] FFmpeg 9.0.1 mit Restreamer-Patches bauen"
 docker build --pull --tag nkl/ffmpeg:9.0.1 ffmpeg
 
 echo "[2/5] Restreamer Core bauen"
-docker build --pull --tag nkl/restreamer-core:0.3.0-dev31 core
+docker build --pull --tag nkl/restreamer-core:0.3.0-dev32 core
 
 echo "[3/5] Restreamer UI bauen"
-docker build --pull --tag nkl/restreamer-ui:0.3.0-dev31 ui
+docker build --pull --tag nkl/restreamer-ui:0.3.0-dev32 ui
 
 echo "[4/5] Release-Image zusammensetzen"
 docker build \
     --file bundle/Dockerfile \
     --build-arg FFMPEG_IMAGE=nkl/ffmpeg:9.0.1 \
-    --build-arg CORE_IMAGE=nkl/restreamer-core:0.3.0-dev31 \
-    --build-arg RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev31 \
+    --build-arg CORE_IMAGE=nkl/restreamer-core:0.3.0-dev32 \
+    --build-arg RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev32 \
     --tag "$release_image" \
     .
 
@@ -126,5 +126,5 @@ done
 ./tests/smoke-test.sh
 
 echo
-echo "Restreamer Nistkasten Livestream 0.3.0-dev31 wurde lokal gebaut und laeuft auf http://127.0.0.1:${http_port}"
+echo "Restreamer Nistkasten Livestream 0.3.0-dev32 wurde lokal gebaut und laeuft auf http://127.0.0.1:${http_port}"
 echo "Ein vorhandener offizieller Container namens 'restreamer' wurde nicht veraendert."

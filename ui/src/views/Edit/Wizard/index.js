@@ -190,6 +190,8 @@ export default function Wizard({ restreamer = null }) {
 
 		// Create update the ingest snapshot process
 		await restreamer.UpsertIngestSnapshot(_channelid, control);
+		const [, previewError] = await restreamer.UpsertIngestPreview(_channelid, control);
+		if (previewError) notify.Dispatch('error', 'save:preview', previewError.message);
 
 		// Create/update the player
 		await restreamer.UpdatePlayer(_channelid);
@@ -469,7 +471,7 @@ export default function Wizard({ restreamer = null }) {
 		};
 
 		const isCompatible = (stream) => {
-			if (stream.codec === 'h264') {
+			if (['h264', 'hevc', 'h265'].includes(stream.codec)) {
 				return true;
 			}
 
@@ -526,6 +528,9 @@ export default function Wizard({ restreamer = null }) {
 				onBack={handleBack}
 				onNext={handleNext}
 				compatible={compatible}
+				hevc={['hevc','h265'].includes(streams[profile.stream].codec)}
+				previewSettings={$data.control.preview}
+				onPreviewChange={(preview) => setData((data) => ({...data, control:{...data.control,preview}}))}
 				stream={$profile.video.stream}
 				streamList={streamList}
 				onStreamChange={handleStreamChange}

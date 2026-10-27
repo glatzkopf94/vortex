@@ -1,10 +1,11 @@
-# Vortex 1.5 Beta / 0.3.0-dev31
+# Vortex 1.6 Beta / 0.3.0-dev32
 
-- Zeitraffer-Speicherlimit in System > Zeitraffer > Alte Aufnahmen löschen einstellbar (1–10000 GiB). Änderungen gelten sofort und bleiben nach Neustarts erhalten. Ohne Änderung bleibt das bisherige Limit bestehen.
-- Speicherfehler unterscheiden das Zeitrafferlimit von der freien Festplattenreserve. Videoverarbeitung löscht oder überschreibt keine bestehenden Aufnahmefehler mehr.
-- Player-Overlay: Leeres Textfeld und Deaktivierung entfernen den bisher angezeigten Text auch in bereits geöffneten Playern. Unbenutzte JSON-Quellen blockieren reine Freitextänderungen nicht mehr.
-- Zeitraffer-Vollbild umfasst Tagesauswahl, Qualitätsmenü und Aktualisieren. Verlassen des Vollbilds erhält die Zeitraffervorschau.
+- Echtes H.265-Passthrough in HLS/fMP4 mit hvc1-Kennung, ohne Video-Umkodierung.
+- Optionaler H.264-Ersatzstream pro Kanal mit einstellbarer Auflösung und Bitrate. Browser ohne passende H.265-Unterstützung können automatisch umschalten.
+- Der aktivierte Ersatzstream wird einmal pro laufendem Kanal erzeugt und benötigt zusätzliche Rechenleistung und gegebenenfalls DVR-Speicher.
+- DVR-Aufbewahrung und Sitzungsverwaltung unterstützen fMP4-Segmente.
+- Bestehende Zeitraffer bleiben erhalten. Beim Umstellen auf H.265 beginnt ein neues DVR-Fenster.
 
-Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Bei erreichtem 20-GiB-Limit das neue Feld auf einen zur verfügbaren Festplatte passenden Wert erhöhen und speichern, beispielsweise 40 GiB. Laufende Aufnahmepläne können beim nächsten Aufnahmeintervall fortfahren; entstandene Lücken werden nicht rückwirkend gefüllt.
+Nach dem Update Oberfläche und Player neu laden. Für H.265 das Videoprofil Passthrough wählen und eine gegebenenfalls aktivierte interne RTMP-Ausgabe deaktivieren. Die Wiedergabe hängt von der H.265-Unterstützung des jeweiligen Geräts ab.
 
-Aufbewahrungsregeln bleiben unverändert: Bei fester Tagesfrist werden jüngere Aufnahmen nicht vorzeitig gelöscht. Bei Nie bleibt die bestehende Ringpufferlöschung aktiv. Die freie Festplattenreserve bleibt geschützt. Natives Browser-PiP bleibt unverändert und übernimmt keine HTML-Overlays.
+Lokal getestet mit FFmpeg, Firefox und UI-Tests; Anwender-Dauertest über einen Tag mit funktionierendem DVR und Zeitraffer. Livewiedergabe außerdem in Edge, Chrome und Samsung Internet bestätigt.

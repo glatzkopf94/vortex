@@ -305,6 +305,21 @@
 			if (viewerToken)
 				publicSourceURL.searchParams.set('viewer', viewerToken);
 
+			var hevcSource = ['hevc', 'h265'].indexOf(playerConfig.videoCodec) !== -1;
+			var usingFallback = false;
+			var fallbackURL = playerConfig.fallbackSource ? new URL('/' + playerConfig.fallbackSource.replace(/^\/+/, ''), window.location.origin) : null;
+			if (fallbackURL && viewerToken) fallbackURL.searchParams.set('viewer', viewerToken);
+			var hevcSupported = function () {
+				var mime = 'video/mp4; codecs="hvc1.1.6.L153.B0"';
+				var video = document.createElement('video');
+				return !!((window.MediaSource && window.MediaSource.isTypeSupported(mime)) ||
+					(video.canPlayType && video.canPlayType(mime)));
+			};
+			if (hevcSource && fallbackURL && !hevcSupported()) {
+				publicSourceURL = fallbackURL;
+				usingFallback = true;
+			}
+
 			var config = {
 				controls: true,
 				poster:
@@ -556,6 +571,23 @@
 			});
 			player.on('error', function () {
 				var error = player.error();
+				if (!window.nklTimelapseClose && !playbackGateReason && publicStreamActivated && hevcSource && error && [3, 4].indexOf(error.code) !== -1) {
+					if (fallbackURL && !usingFallback) {
+						usingFallback = true;
+						publicSourceURL = fallbackURL;
+						publicPlayerSources = [{src: fallbackURL.toString(), type: 'application/x-mpegURL'}];
+						cancelSourceRetry();
+						player.error(null);
+						player.src(publicPlayerSources);
+						var fallbackPlay = player.play();
+						if (fallbackPlay && fallbackPlay.catch) fallbackPlay.catch(function () {});
+						return;
+					}
+					if (!fallbackURL) {
+						if (player.errorDisplay) player.errorDisplay.contentEl().textContent = 'H.265 kann auf diesem Gerät nicht wiedergegeben werden oder der Stream ist fehlerhaft. Für diesen Kanal ist kein H.264-Fallback aktiviert.';
+						return;
+					}
+				}
 				if (window.nklTimelapseClose || !error || [2, 4].indexOf(error.code) === -1 ||
 					!publicStreamActivated || playbackGateReason ||
 					sourceRetryTimer !== null || sourceRetryCount >= 12) return;

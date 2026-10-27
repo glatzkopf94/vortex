@@ -60,3 +60,14 @@ func TestPendingSegmentsBoundedAndExpired(t *testing.T) {
 		t.Fatal("duplicate accounting record")
 	}
 }
+
+func TestRewriteHLSFragmentedMP4(t *testing.T) {
+	rewriter := sessionRewriter{}
+	rewriter.buffer.WriteString("#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\nsegment.mp4\n")
+	requestURL, _ := url.Parse("https://stream.example.test/channel.m3u8?viewer=viewer-browser-0001")
+	rewriter.rewriteHLS("session-id", requestURL)
+	result := rewriter.buffer.String()
+	if !strings.Contains(result, "segment.mp4?session=session-id&viewer=viewer-browser-0001") {
+		t.Fatalf("fMP4 media must retain session and viewer accounting: %s", result)
+	}
+}

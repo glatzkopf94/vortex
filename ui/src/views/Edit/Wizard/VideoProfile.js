@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import Paper from '../../../misc/Paper';
 import PaperHeader from '../../../misc/PaperHeader';
 import Select from '../../../misc/Select';
+import PreviewControl from '../../../misc/controls/Preview';
 
 export default function VideoProfile({
 	onAbort = () => {},
@@ -16,6 +17,9 @@ export default function VideoProfile({
 	onBack = () => {},
 	onNext = () => {},
 	compatible = false,
+	hevc = false,
+	previewSettings = {},
+	onPreviewChange = () => {},
 	onStreamChange = () => {},
 	streamList = [],
 	stream = 0,
@@ -43,6 +47,7 @@ export default function VideoProfile({
 						{streamList}
 					</Select>
 				</Grid>
+				{hevc && <Grid item xs={12}><Typography>H.265 wird unverändert durchgereicht. Optional kann Vortex einen reduzierten H.264-Stream für andere Browser erzeugen.</Typography><PreviewControl settings={previewSettings} onChange={onPreviewChange} /></Grid>}
 				{compatible === false && (
 					<React.Fragment>
 						{encodersList.length === 0 ? (

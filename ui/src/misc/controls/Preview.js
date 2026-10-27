@@ -4,6 +4,7 @@ import { Trans } from '@lingui/macro';
 import Grid from '@mui/material/Grid';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
 
 import * as Encoders from '../coders/Encoders';
 import Checkbox from '../Checkbox';
@@ -11,7 +12,10 @@ import Select from '../Select';
 
 function init(settings) {
 	const initSettings = {
-		enable: true,
+		enable: false,
+		fallbackOnly: true,
+		height: 720,
+		bitrate: 2048,
 		video_encoder: 'libx264',
 		audio_encoder: 'aac',
 		...settings,
@@ -32,7 +36,7 @@ export default function Control({ settings = {}, availableEncoders = [], onChang
 	const handleChange = (what) => (event) => {
 		const value = event.target.value;
 
-		if (['enable'].includes(what)) {
+		if (['enable', 'fallbackOnly'].includes(what)) {
 			settings[what] = !settings[what];
 		} else {
 			settings[what] = value;
@@ -46,10 +50,23 @@ export default function Control({ settings = {}, availableEncoders = [], onChang
 	return (
 		<Grid container spacing={2}>
 			<Grid item xs={12}>
-				<Checkbox label={<Trans>Enable browser-compatible H.264 stream</Trans>} checked={settings.enable} onChange={handleChange('enable')} />
+				<Checkbox label="H.264-Substream aus der Hauptquelle erzeugen" checked={settings.enable} onChange={handleChange('enable')} />
+				<Typography variant="caption" display="block">Der Hauptstream bleibt unverändert. Bei Aktivierung wird ein zusätzlicher Stream einmal pro Kanal umkodiert. Dies benötigt CPU und bei DVR zusätzlichen Speicher.</Typography>
+			</Grid>
+			<Grid item xs={12}>
+				<Checkbox label="Nur als Fallback bei fehlender Browserunterstützung verwenden" checked={settings.fallbackOnly} disabled={!settings.enable} onChange={handleChange('fallbackOnly')} />
+				<Typography variant="caption" display="block">H.265 benötigt Passthrough im Videoprofil. HLS/fMP4 wird beim Speichern automatisch gesetzt. Ohne Fallback benötigen Zuschauer einen passenden HEVC-Decoder.</Typography>
 			</Grid>
 			<Grid item xs={12} md={6}>
-				<Select label={<Trans>Video Codec</Trans>} value={settings.video_encoder} disabled={!settings.enable} onChange={handleChange('video_encoder')}>
+				<Select label="Maximale Fallback-Höhe" value={settings.height} disabled={!settings.enable || !settings.fallbackOnly} onChange={handleChange('height')}>
+					{[360,480,720,1080,1440].map((height) => <MenuItem key={height} value={height}>{height}p</MenuItem>)}
+				</Select>
+			</Grid>
+			<Grid item xs={12} md={6}>
+				<TextField fullWidth label="Fallback-Bitrate (kbit/s)" type="number" value={settings.bitrate} disabled={!settings.enable || !settings.fallbackOnly} onChange={handleChange('bitrate')} inputProps={{min:256,max:12000}} helperText="Seitenverhältnis bleibt erhalten; kein Hochskalieren. Ausgabe mit 25 fps." />
+			</Grid>
+			<Grid item xs={12} md={6}>
+				<Select label={<Trans>Video Codec</Trans>} value={settings.video_encoder} disabled={!settings.enable || settings.fallbackOnly} onChange={handleChange('video_encoder')}>
 					{encoders.map((encoder) => (
 						<MenuItem key={encoder.coder} value={encoder.coder}>
 							{encoder.name}

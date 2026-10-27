@@ -304,7 +304,7 @@ export default function Edit({ restreamer = null }) {
 
 	const storage = $metadata.control.hls.storage;
 	const manifest = restreamer.GetChannelAddress('hls+' + storage, _channelid);
-	const manifest_preview = restreamer.GetChannelAddress('hls+' + storage, `${_channelid}_h264`);
+	const manifest_preview = restreamer.GetChannelAddress('hls+' + ($metadata.control.hls.dvr?.enabled ? 'diskfs' : 'memfs'), `${_channelid}_h264`);
 	const poster = $settings.poster ? prepareUrl($settings.poster) : restreamer.GetChannelAddress('snapshot+' + storage, _channelid);
 	const playerAddress = restreamer.GetPublicAddress('player', _channelid);
 	const aspectRatio = restreamer.GetPlayerAspectRatio($metadata, $settings.playback.autoAspectRatio);
@@ -330,7 +330,9 @@ export default function Edit({ restreamer = null }) {
 									<Player
 										key={$revision}
 										type={$player}
-										source={$metadata.control.preview?.enable ? manifest_preview : manifest}
+										source={$metadata.control.preview?.enable && !$metadata.control.preview.fallbackOnly ? manifest_preview : manifest}
+										fallbackSource={$metadata.control.preview?.enable && $metadata.control.preview.fallbackOnly ? manifest_preview : ''}
+										videoCodec={$metadata.streams?.find((s) => s.type === 'video')?.codec || ''}
 										autoplay={$settings.autoplay}
 										mute={$settings.mute}
 										poster={poster}

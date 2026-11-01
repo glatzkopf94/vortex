@@ -11,6 +11,7 @@ type cpuCollector struct {
 	userDescr   *metric.Description
 	idleDescr   *metric.Description
 	otherDescr  *metric.Description
+	iowaitDescr *metric.Description
 
 	ncpu float64
 }
@@ -24,6 +25,7 @@ func NewCPUCollector() metric.Collector {
 	c.systemDescr = metric.NewDesc("cpu_system", "Percentage of CPU used for the system", nil)
 	c.userDescr = metric.NewDesc("cpu_user", "Percentage of CPU used for the user", nil)
 	c.idleDescr = metric.NewDesc("cpu_idle", "Percentage of idle CPU", nil)
+	c.iowaitDescr = metric.NewDesc("cpu_iowait", "Percentage of CPU time waiting for I/O", nil)
 	c.otherDescr = metric.NewDesc("cpu_other", "Percentage of CPU used for other subsystems", nil)
 
 	if ncpu, err := psutil.CPUCounts(true); err == nil {
@@ -46,6 +48,7 @@ func (c *cpuCollector) Describe() []*metric.Description {
 		c.userDescr,
 		c.idleDescr,
 		c.otherDescr,
+		c.iowaitDescr,
 	}
 }
 
@@ -63,6 +66,7 @@ func (c *cpuCollector) Collect() metric.Metrics {
 	metrics.Add(metric.NewValue(c.userDescr, stat.User))
 	metrics.Add(metric.NewValue(c.idleDescr, stat.Idle))
 	metrics.Add(metric.NewValue(c.otherDescr, stat.Other))
+	metrics.Add(metric.NewValue(c.iowaitDescr, stat.IOWait))
 
 	return metrics
 }

@@ -861,8 +861,11 @@ export default function Wizard({ restreamer = null }) {
 			setStep($abort.step);
 		};
 
-		handleNext = () => {
-			restreamer.DeleteChannel(_channelid);
+		handleNext = async () => {
+			if (await restreamer.DeleteChannel(_channelid) !== true) {
+				setStep('ERROR');
+				return;
+			}
 
 			// Select a channel to jump back to
 			const channels = restreamer.ListChannels();

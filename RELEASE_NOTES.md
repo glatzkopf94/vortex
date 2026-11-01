@@ -1,11 +1,14 @@
-# Vortex 1.6 Beta / 0.3.0-dev32
+# Vortex 1.6 Beta / 0.3.0-dev33
 
-- Echtes H.265-Passthrough in HLS/fMP4 mit hvc1-Kennung, ohne Video-Umkodierung.
-- Optionaler H.264-Ersatzstream pro Kanal mit einstellbarer Auflösung und Bitrate. Browser ohne passende H.265-Unterstützung können automatisch umschalten.
-- Der aktivierte Ersatzstream wird einmal pro laufendem Kanal erzeugt und benötigt zusätzliche Rechenleistung und gegebenenfalls DVR-Speicher.
-- DVR-Aufbewahrung und Sitzungsverwaltung unterstützen fMP4-Segmente.
-- Bestehende Zeitraffer bleiben erhalten. Beim Umstellen auf H.265 beginnt ein neues DVR-Fenster.
+Hotfix auf Basis des erfolgreich lokal installierten Test40.
 
-Nach dem Update Oberfläche und Player neu laden. Für H.265 das Videoprofil Passthrough wählen und eine gegebenenfalls aktivierte interne RTMP-Ausgabe deaktivieren. Die Wiedergabe hängt von der H.265-Unterstützung des jeweiligen Geräts ab.
+- DVR abschalten stellt die Live-Ausgabe auf RAM/memfs mit sechs Segmenten und aktiver Bereinigung zurück. Bewusst eingestellte Disk-Ausgabe wird beim bloßen Öffnen der Einstellungen beibehalten.
+- Kanalübersicht liest beim Öffnen den aktuellen Serverbestand ein. Fehlende Namen oder abweichende Referenzen verstecken keinen kanonischen Hauptprozess mehr. Ungespeicherte Kanäle bleiben erhalten.
+- Kanallöschung prüft die Ergebnisse und entfernt den Hauptprozess erst nach seinen Hilfsprozessen. Bei Fehlern bleibt der Kanal sichtbar und die Löschung wiederholbar.
+- Audiofilter übernehmen unbekannte Abtastraten und Kanalanordnungen aus dem Eingang, statt ungültige undefined-Parameter an FFmpeg zu geben.
+- Live-HLS löscht Segmente nicht mehr anhand einer geschätzten Dauer vorzeitig. Die Begrenzung über die Segmentanzahl bleibt bestehen.
+- CPU-Rechenlast und I/O-Wartezeit werden getrennt erfasst. Die Fußleiste zeigt „12% CPU | 0% I/O-Wait | 24% MEM“ mit farbigen Prozentwerten: 0–25 grün, 26–49 hellgrün, 50–70 gelb, 71–90 orange, 91–98 rot und 99–100 violett. Warnsymbol ab 75%; vorhandene Speicher- und Netzwerkwarnungen bleiben erhalten.
 
-Lokal getestet mit FFmpeg, Firefox und UI-Tests; Anwender-Dauertest über einen Tag mit funktionierendem DVR und Zeitraffer. Livewiedergabe außerdem in Edge, Chrome und Samsung Internet bestätigt.
+Nach dem Update Oberfläche und Player neu laden. Bereits vorhandene fehlerhafte Audioeinstellungen einmal neu speichern. Bereits früher mit ausgeschaltetem DVR auf Disk verbliebene Kanäle bei Bedarf ausdrücklich auf RAM und sechs Segmente umstellen. Bestehende Kanäle, DVR-Aufnahmen und Zeitraffer werden nicht pauschal gelöscht.
+
+Die bisherige H.265-Unterstützung und der optionale H.264-Ersatzstream bleiben enthalten. Die offizielle Veröffentlichung baut und prüft linux/amd64 und linux/arm64.

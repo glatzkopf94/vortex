@@ -15,11 +15,14 @@ RUN cd /ui && \
 	corepack prepare yarn@1.22.22 --activate && \
 	yarn install --frozen-lockfile && \
 	CI=true timeout 15m yarn test-ci --runInBand --forceExit --runTestsByPath \
+		src/Footer.test.js \
 		src/misc/coders/coders.test.js \
 		src/misc/controls/HLS.test.js \
 		src/misc/filters/video/CustomFilters.test.js \
 		src/utils/api.test.js \
 		src/utils/restreamer-livechasing.test.js \
+		src/utils/restreamer-channel-lifecycle.test.js \
+		src/misc/filters/audio/Resample.test.js \
 		src/views/Edit/Wizard/Sources/NetworkInput.test.js \
 		src/views/Publication/PlayerOverlay.test.js && \
 	yarn i18n-compile && \

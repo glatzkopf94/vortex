@@ -375,7 +375,8 @@ export default function RestreamerUI({ address = '' }) {
 		document.location.hash = '#/settings';
 	};
 
-	const handleChannelList = () => {
+	const handleChannelList = async () => {
+		await restreamer.current.RefreshChannels();
 		const channelid = restreamer.current.GetCurrentChannelID();
 		const channels = restreamer.current.ListChannels();
 

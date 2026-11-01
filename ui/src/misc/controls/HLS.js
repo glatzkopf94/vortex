@@ -63,6 +63,12 @@ export default function Control({ settings = {}, dvrMaxHours = 4, onChange = fun
 
 		if (what === 'dvr') {
 			settings.dvr = { enabled: !settings.dvr.enabled, hours: maxHours };
+			if (!settings.dvr.enabled) {
+				// DVR overrides these values; return explicitly to bounded live buffering.
+				settings.storage = 'memfs';
+				settings.listSize = 6;
+				settings.cleanup = true;
+			}
 		} else if (['lhls', 'cleanup', 'master_playlist'].includes(what)) {
 			settings[what] = !settings[what];
 		} else {

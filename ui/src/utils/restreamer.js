@@ -31,9 +31,10 @@ function getIngestRTSPStability(inputs = [], reconnect = false) {
 }
 
 function getHLSSegmentCleanupAge(control) {
-	const listSize = parseInt(control.hls.listSize, 10);
-	if (control.hls.dvr?.enabled || listSize <= 0) return 0;
-	return parseInt(control.hls.segmentDuration, 10) * (listSize + 6);
+	// Passthrough cuts at actual keyframes, not necessarily at hls_time.
+	// Keep live buffering bounded by segment count; never expire referenced
+	// segments or playlists using a guessed duration.
+	return 0;
 }
 
 function getPlayerAspectRatio(metadata = {}, enabled = true) {
@@ -1214,13 +1215,13 @@ class Restreamer {
 
 	// Channels
 
-	async _discoverChannels() {
+	async _discoverChannels(processes = null, preserveDrafts = false) {
 		const channels = new Map();
 
 		const reIngest = new RegExp('^restreamer-ui:ingest:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$');
 		const reEgress = new RegExp('^restreamer-ui:egress:([0-9a-z]+):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$');
 
-		const processes = await this._listProcesses(['metadata']);
+		if (processes === null) processes = await this._listProcesses(['metadata']);
 		const egresses = new Map();
 
 		let hasImported = false;
@@ -1262,15 +1263,14 @@ class Restreamer {
 			p.metadata = M.initIngestMetadata(p.metadata);
 
 			const channelid = matches[1];
-			if (channelid !== p.reference) {
-				continue;
-			}
+			// The canonical ingest ID identifies a channel even if old metadata has
+			// a missing or stale reference. Never hide a running ingest for that reason.
 
 			if (!channels.has(channelid)) {
 				channels.set(channelid, {
 					id: p.id,
 					channelid: channelid,
-					name: p.metadata.meta.name,
+					name: p.metadata.meta.name || channelid,
 					egresses: new Map(),
 					available: true,
 				});
@@ -1295,6 +1295,12 @@ class Restreamer {
 			}
 
 			channels.set(channelid, channel);
+		}
+
+		if (preserveDrafts) {
+			for (const [id, channel] of this.channels) {
+				if (!channel.available && !channels.has(id)) channels.set(id, channel);
+			}
 		}
 
 		this.channels = channels;
@@ -1327,6 +1333,14 @@ class Restreamer {
 		}
 	}
 
+	async RefreshChannels() {
+		const [processes, err] = await this._call(this.api.Processes, '', [], ['metadata']);
+		// An unavailable API must not replace the visible registry with an empty one.
+		if (err !== null || !Array.isArray(processes)) return false;
+		await this._discoverChannels(processes.map((process) => this._sanitizeProcess(process)), true);
+		return true;
+	}
+
 	CreateChannel(name) {
 		const channelid = uuidv4();
 		this.channels.set(channelid, {
@@ -1347,12 +1361,13 @@ class Restreamer {
 		}
 
 		await this.StopAllEgresses(channel.channelid);
-		await this.DeleteIngest(channel.channelid);
-		await this.DeleteIngestSnapshot(channel.channelid);
-
+		// Keep the main process (and therefore the visible channel) until all
+		// dependent processes are deleted. A failed request must remain retryable.
 		for (let egressid of channel.egresses) {
-			await this.DeleteEgress(channel.channelid, egressid);
+			if (await this.DeleteEgress(channel.channelid, egressid) !== true) return false;
 		}
+		if (await this.DeleteIngestSnapshot(channel.channelid) !== true) return false;
+		if (await this.DeleteIngest(channel.channelid) !== true) return false;
 
 		this.channels.delete(channel.channelid);
 
@@ -1832,7 +1847,7 @@ class Restreamer {
 			return false;
 		}
 
-		await this._deleteProcess(channel.id + '_h264');
+		if (await this._deleteProcess(channel.id + '_h264') !== true) return false;
 		return await this._deleteProcess(channel.id);
 	}
 
@@ -3015,7 +3030,7 @@ class Restreamer {
 		const res = await this._deleteProcess(id);
 
 		if (res === true) {
-			this.channel.egresses.delete(id);
+			this.channels.get(channel.channelid).egresses.delete(id);
 		}
 
 		return res;
@@ -3951,6 +3966,7 @@ class Restreamer {
 				{ name: 'uptime_uptime' },
 				{ name: 'cpu_ncpu' },
 				{ name: 'cpu_idle' },
+				{ name: 'cpu_iowait' },
 				{ name: 'mem_total' },
 				{ name: 'mem_free' },
 				{ name: 'filesystem_limit' },
@@ -4008,7 +4024,8 @@ class Restreamer {
 		const resources = {
 			uptime_seconds: getValue(metrics, 'uptime_uptime'),
 			system: {
-				cpu_used: 100 - getValue(metrics, 'cpu_idle'),
+				cpu_used: Math.max(0, Math.min(100, 100 - getValue(metrics, 'cpu_idle') - getValue(metrics, 'cpu_iowait'))),
+				cpu_iowait: getValue(metrics, 'cpu_iowait'),
 				cpu_ncores: getValue(metrics, 'cpu_ncpu'),
 				mem_used_bytes: getValue(metrics, 'mem_total') - getValue(metrics, 'mem_free'),
 				mem_total_bytes: getValue(metrics, 'mem_total'),

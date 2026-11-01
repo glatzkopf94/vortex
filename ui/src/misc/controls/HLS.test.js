@@ -55,3 +55,16 @@ test('enabled DVR offers the channel cleanup action', () => {
 	fireEvent.click(screen.getByRole('button', { name: 'Delete DVR content' }));
 	expect(onPurgeDVR).toHaveBeenCalledTimes(1);
 });
+
+test('disabling DVR resets disk retention to six memory segments', () => {
+ const onChange = jest.fn();
+ render(<Control settings={{ dvr: { enabled: true, hours: 3 }, storage: 'diskfs', listSize: 5400, segmentDuration: 2 }} dvrMaxHours={3} onChange={onChange} />);
+ fireEvent.click(screen.getByRole('checkbox', { name: 'Enable DVR rewind' }));
+ expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ storage: 'memfs', listSize: 6, cleanup: true, dvr: { enabled: false, hours: 3 } }), false);
+});
+
+test('ordinary disk HLS is preserved when opening settings with DVR already off', () => {
+ const onChange = jest.fn();
+ render(<Control settings={{ dvr: { enabled: false }, storage: 'diskfs', listSize: 12 }} onChange={onChange} />);
+ expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ storage: 'diskfs', listSize: 12 }), true);
+});

@@ -68,6 +68,30 @@ const useStyles = makeStyles((theme) => ({
 	},
 }));
 
+export function getLoadColor(value) {
+	const percent = Math.round(Math.max(0, Math.min(100, value || 0)));
+	if (percent <= 25) return '#00c853';
+	if (percent <= 49) return '#b2ff59';
+	if (percent <= 70) return '#ffeb3b';
+	if (percent <= 90) return '#ff9800';
+	if (percent <= 98) return '#ff5252';
+	return '#ce93d8';
+}
+
+export function ResourceLoad({ system }) {
+	const values = [[system.cpu_used, 'CPU'], [system.cpu_iowait || 0, 'I/O-Wait'], [system.mem_used, 'MEM']];
+	return values.map(([value, label], index) => (
+		<React.Fragment key={label}>
+			{index > 0 && ' | '}
+			<span style={{ color: getLoadColor(value), fontWeight: 700 }}>{(value || 0).toFixed(0)}%</span>{' '}{label}
+		</React.Fragment>
+	));
+}
+
+export function hasResourceWarning(system, core) {
+	return [system.cpu_used, system.cpu_iowait, system.mem_used, core.memfs_used, core.disk_used, core.net_used].some((value) => value >= 75);
+}
+
 function Resources({
 	getResources = () => {
 		return null;
@@ -138,11 +162,11 @@ function Resources({
 
 	return (
 		<Stack className="footerRight" direction="row" alignItems="center" spacing={0}>
-			{(system.cpu_used >= 75 || system.mem_used >= 75 || core.memfs_used >= 75 || core.disk_used >= 75 || core.net_used >= 75) && (
+			{hasResourceWarning(system, core) && (
 				<WarningIcon className={classes.warningIcon} color="service" />
 			)}
 			<Typography variant="button" noWrap aria-owns={open ? 'mouse-over-popover' : undefined} aria-haspopup="true" onMouseOver={handlePopoverOpen}>
-				{system.cpu_used.toFixed(0)}% CPU / {system.mem_used.toFixed(0)}% Mem / <Number value={core.viewer_used} /> <Trans>Viewer</Trans>
+				<ResourceLoad system={system} /> | <Number value={core.viewer_used} /> <Trans>Viewer</Trans>
 			</Typography>
 			<Popover
 				id="mouse-over-popover"
@@ -370,7 +394,7 @@ export default function Footer({
 						<Stack className="footerLeft" direction="row" alignItems="center" spacing={0}>
 							<Logo className={classes.logo} />
 							<Typography className="footerVersion">
-								Vortex - dev-32 1.6 Beta ({version.arch})
+								Vortex - dev-33 1.6 Beta ({version.arch})
 							</Typography>
 						</Stack>
 						<Resources getResources={getResources} />

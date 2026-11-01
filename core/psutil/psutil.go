@@ -56,6 +56,7 @@ type CPUInfoStat struct {
 	User   float64
 	Idle   float64
 	Other  float64
+	IOWait float64
 }
 
 type cpuTimesStat struct {
@@ -64,6 +65,7 @@ type cpuTimesStat struct {
 	user   float64
 	idle   float64
 	other  float64
+	iowait float64
 }
 
 type Util interface {
@@ -294,6 +296,7 @@ func (u *util) cpuTimes() (*cpuTimesStat, error) {
 		system: times[0].System,
 		user:   times[0].User,
 		idle:   times[0].Idle,
+		iowait: times[0].Iowait,
 	}
 
 	s.other = s.total - s.system - s.user - s.idle
@@ -328,6 +331,7 @@ func (u *util) CPUPercent() (*CPUInfoStat, error) {
 	s.User = 100 * (u.statCurrent.user - u.statPrevious.user) / total
 	s.Idle = 100 * (u.statCurrent.idle - u.statPrevious.idle) / total
 	s.Other = 100 * (u.statCurrent.other - u.statPrevious.other) / total
+	s.IOWait = math.Max(0, 100*(u.statCurrent.iowait-u.statPrevious.iowait)/total)
 
 	if u.hasCgroup && u.cpuLimit > 0 {
 		s.Idle = 100 - s.User - s.System

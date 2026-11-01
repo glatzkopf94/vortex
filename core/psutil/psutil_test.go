@@ -92,3 +92,15 @@ func TestCgroup(t *testing.T) {
 	assert.Equal(t, uint64(9223372036854771712), mem.Total)
 	assert.Equal(t, uint64(34070528), mem.Used)
 }
+
+func TestCPUPercentIOWait(t *testing.T) {
+	u := &util{statPrevious: cpuTimesStat{total: 100, iowait: 10}, statCurrent: cpuTimesStat{total: 200, idle: 5, user: 2, system: 1, other: 92, iowait: 100}}
+	stat, err := u.CPUPercent()
+	assert.NoError(t, err)
+	assert.Equal(t, float64(90), stat.IOWait)
+	assert.Equal(t, float64(5), 100-stat.Idle-stat.IOWait)
+	u.statCurrent.iowait = 0 // Linux may revise the accounting downwards.
+	stat, err = u.CPUPercent()
+	assert.NoError(t, err)
+	assert.Equal(t, float64(0), stat.IOWait)
+}

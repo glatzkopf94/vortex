@@ -6,9 +6,9 @@ jest.mock('uuid', () => ({
 	v4: jest.fn(),
 }));
 
-test('DVR cleanup has no independent nominal age limit', () => {
+test('DVR and live cleanup have no nominal age limit that could expire long-GOP segments', () => {
 	expect(getHLSSegmentCleanupAge({ hls: { dvr: { enabled: true }, listSize: 7200, segmentDuration: 2 } })).toBe(0);
-	expect(getHLSSegmentCleanupAge({ hls: { dvr: { enabled: false }, listSize: 6, segmentDuration: 2 } })).toBe(24);
+	expect(getHLSSegmentCleanupAge({ hls: { dvr: { enabled: false }, listSize: 6, segmentDuration: 2 } })).toBe(0);
 });
 
 test('standard RTSP keeps permissive decoder handling and reconnect choice', () => {
@@ -215,4 +215,16 @@ test('HEVC source defaults to passthrough and a new fallback is opt-in',()=>{
  const profile=M.initProfile();
  const result=M.preselectProfile('video',[{type:'video',codec:'hevc',width:3840,height:2160}],profile,{video:['libx264'],audio:['aac']},false);
  expect(result.video.encoder.coder).toBe('copy');
+});
+
+test.each(['h264', 'hevc'])('live %s output stays bounded without expiring long-GOP segments', async codec => {
+ const ctx = hevcContext();
+ const [, err] = await Restreamer.prototype.UpsertIngest.call(ctx, 'camera', [], [{ address: 'rtsp://test/live', options: [] }], [{ videoCodec: codec, options: ['-codec:v', 'copy', '-an'] }], hevcControl(false));
+ expect(err).toBeNull();
+ const out = ctx._upsertProcess.mock.calls[0][1].output[0];
+ expect(out.address).toContain('{memfs}');
+ const index = out.options.indexOf('-hls_list_size');
+ expect(out.options[index + 1]).toBe('6');
+ expect(out.cleanup.some(rule => rule.max_files === 12)).toBe(true);
+ expect(out.cleanup.every(rule => !rule.max_file_age_seconds)).toBe(true);
 });

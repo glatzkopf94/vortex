@@ -16,6 +16,7 @@ RUN apk add \
 	make
 
 RUN cd /dist/core && \
+	go test ./psutil ./monitor && \
 	go test ./http/cache ./http/middleware/cache ./io/fs && \
 	go test ./http -run TestTimelapse && \
 	go test ./restream -run TestShutdownDoesNotPurgePersistentFiles && \

@@ -26,8 +26,10 @@ function createGraph(settings) {
 
 	const mapping = [];
 
-	const sampling = settings.sampling;
-	const layout = settings.layout;
+	// Unknown probe/mapping values must never become literal FFmpeg options.
+	const sampling = /^[1-9][0-9]*$/.test(String(settings.sampling)) ? settings.sampling : 'inherit';
+	const layout = typeof settings.layout === 'string' && /^[a-zA-Z0-9_.()+-]+$/.test(settings.layout)
+		&& !['undefined', 'null', 'auto', ''].includes(settings.layout) ? settings.layout : 'inherit';
 
 	if (sampling !== 'inherit') {
 		mapping.push(`osr=${sampling}`);

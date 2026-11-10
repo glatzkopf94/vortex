@@ -96,6 +96,7 @@ jobs:
           python3 tests/test-player-ui.py
           python3 tests/test-player-cleanup.py
           node tests/test-player-behavior.js
+          node tests/test-player-overlay-dvr.cjs
           python3 -m py_compile scripts/migrate-player-1.4.py
           python3 tests/test-timestamp-repair.py
           python3 tests/test-update-agent.py

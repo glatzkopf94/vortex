@@ -255,6 +255,17 @@ export default function PlayerOverlay({
 				)}
 				{(settings.enabled || !showToggle) && (
 					<React.Fragment>
+                        {assistantType !== 'burnin' && (
+                            <Grid item xs={12}>
+                                <Select fullWidth label="Player-Overlay im DVR anzeigen" value={Number(settings.dvrWindowMinutes) === 10 ? '10' : '5'} onChange={update('dvrWindowMinutes')}>
+                                    <MenuItem value="5">Live und letzte 5 Minuten</MenuItem>
+                                    <MenuItem value="10">Live und letzte 10 Minuten</MenuItem>
+                                </Select>
+                                <Typography variant="caption" display="block">
+                                    Aktuelle Texte, Messwerte und Logos werden bei älteren DVR-Aufnahmen ausgeblendet. Eingebrannte Overlays und Zeitrafferbilder bleiben unverändert.
+                                </Typography>
+                            </Grid>
+                        )}
 						<Grid item xs={12}>
 							<Typography variant="h4">
 								<Trans>Overlay assistant</Trans>

@@ -2473,6 +2473,7 @@ class Restreamer {
 		settings.overlay = {
 			enabled: false,
 			sources: '',
+			dvrWindowMinutes: '5',
 			interval: '60',
 			template: '',
 			position: 'bottom-left',
@@ -2641,6 +2642,7 @@ class Restreamer {
 			},
 			overlay: {
 				enabled: overlay.enabled === true,
+				dvrWindowMinutes: Number(overlay.dvrWindowMinutes) === 10 ? 10 : 5,
 				text: `channels/${channelid}/player-overlay.txt`,
 				interval: number(overlay.interval, 15, 3600, 60),
 				position: positions.includes(overlay.position) ? overlay.position : 'bottom-left',

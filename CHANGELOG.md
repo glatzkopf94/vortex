@@ -1,3 +1,7 @@
+# 0.3.0-dev35 – Vortex 1.7 Beta
+
+Player-Overlay im DVR auf die letzten 5 oder 10 Minuten begrenzen, pro Kanal konfigurierbar. Automatisches Aus-/Einblenden beim Spulen, Pausieren und Tabwechsel; keine Änderung an Encoding oder Zeitrafferbildern. Bestehende Player werden migriert.
+
 # Vortex 1.7 Beta / 0.3.0-dev34
 
 Diese Version übernimmt die lokal erprobten Erweiterungen bis Test45 auf Basis von dev33.

@@ -228,3 +228,18 @@ test.each(['h264', 'hevc'])('live %s output stays bounded without expiring long-
  expect(out.cleanup.some(rule => rule.max_files === 12)).toBe(true);
  expect(out.cleanup.every(rule => !rule.max_file_age_seconds)).toBe(true);
 });
+
+test('DVR overlay window defaults safely and stays bound to each channel configuration', async()=>{
+ const ctx={InitPlayerSettings:Restreamer.prototype.InitPlayerSettings,GetChannelManifestPath:(id,storage)=>storage+'/'+id+'.m3u8',GetChannelPosterPath:()=>'',_uploadAssetData:jest.fn()};
+ const settingsA=ctx.InitPlayerSettings({overlay:{enabled:true,dvrWindowMinutes:'10',template:'A'}});
+ const settingsB=ctx.InitPlayerSettings({overlay:{enabled:true,template:'B'}});
+ expect(settingsA.overlay.dvrWindowMinutes).toBe('10');
+ expect(settingsB.overlay.dvrWindowMinutes).toBe('5');
+ for (const [id,settings,expected] of [['a',settingsA,10],['b',settingsB,5],['invalid',{overlay:{dvrWindowMinutes:-3}},5]]) {
+  await Restreamer.prototype.UpdatePlayerConfig.call(ctx,id,{player:settings,control:hevcControl(true),streams:[],license:'',meta:{name:id,author:{name:''}}});
+  const [path,payload]=ctx._uploadAssetData.mock.calls.at(-1);
+  expect(path).toBe(`/channels/${id}/config.js`);
+  expect(JSON.parse(payload.replace('var playerConfig = ','')).overlay.dvrWindowMinutes).toBe(expected);
+ }
+ expect(settingsA.overlay.template).toBe('A');expect(settingsB.overlay.template).toBe('B');
+});

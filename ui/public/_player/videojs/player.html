@@ -205,7 +205,7 @@
 				</div>
 			</div>
 		</div>
-		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev34"></script>
+		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev35"></script>
 		<script src="player/videojs/dist/videojs-overlay.min.js?nkl=1.4-beta-dev21"></script>
 		{{#if airplay}}
 		<script src="player/videojs/dist/videojs-airplay.min.js?nkl=1.4-beta-dev21"></script>
@@ -801,7 +801,54 @@
 					});
 				};
 
-				overlayRoot.style.display = 'block';
+                // BEGIN DVR OVERLAY WINDOW
+                // Gate the whole layer, including logos/links. Never change the media stream.
+                var overlayWindowSeconds = (Number(playerOverlay.dvrWindowMinutes) === 10 ? 10 : 5) * 60;
+                var overlayEdge = null;
+                var overlayEdgeObservedAt = 0;
+                var updateOverlayDVRVisibility = function () {
+                    var visible = !(playerConfig.dvr && playerConfig.dvr.enabled);
+                    if (!visible) {
+                        try {
+                            var ranges = player.seekable();
+                            var position = player.currentTime();
+                            if (ranges && ranges.length && Number.isFinite(position)) {
+                                var edge = ranges.end(ranges.length - 1);
+                                var now = Date.now();
+                                if (Number.isFinite(edge) && edge > ranges.start(0)) {
+                                    if (edge !== overlayEdge) {
+                                        overlayEdge = edge;
+                                        overlayEdgeObservedAt = now;
+                                    }
+                                    // Pausing/background tabs may stop playlist updates. Count elapsed
+                                    // wall time too, so old frames cannot retain current measurements.
+                                    var liveEdge = edge + Math.max(0, now - overlayEdgeObservedAt) / 1000;
+                                    visible = position >= ranges.start(0) &&
+                                        position <= edge + 1 && liveEdge - position <= overlayWindowSeconds;
+                                }
+                            }
+                        } catch (error) { visible = false; }
+                    }
+                    overlayRoot.style.display = visible ? 'block' : 'none';
+                };
+                var resetOverlayDVREdge = function () {
+                    overlayEdge = null;
+                    overlayEdgeObservedAt = 0;
+                    overlayRoot.style.display = 'none';
+                };
+                ['timeupdate', 'seeking', 'seeked', 'progress', 'loadedmetadata', 'durationchange', 'play', 'pause'].forEach(function (event) {
+                    player.on(event, updateOverlayDVRVisibility);
+                });
+                player.on('loadstart', resetOverlayDVREdge);
+                player.on('emptied', resetOverlayDVREdge);
+                document.addEventListener('visibilitychange', updateOverlayDVRVisibility);
+                var overlayDVRTimer = window.setInterval(updateOverlayDVRVisibility, 1000);
+                player.on('dispose', function () {
+                    window.clearInterval(overlayDVRTimer);
+                    document.removeEventListener('visibilitychange', updateOverlayDVRVisibility);
+                });
+                updateOverlayDVRVisibility();
+                // END DVR OVERLAY WINDOW
 				place(overlayText, playerOverlay.position);
 				overlayText.style.fontFamily =
 					overlayFonts[playerOverlay.font] || overlayFonts.sans;

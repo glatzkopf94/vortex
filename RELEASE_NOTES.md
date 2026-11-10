@@ -1,14 +1,11 @@
-# Vortex 1.7 Beta / 0.3.0-dev34
+# Vortex 1.7 Beta / 0.3.0-dev35
 
-Diese Version übernimmt die lokal erprobten Erweiterungen bis Test45 auf Basis von dev33.
+- Player-Overlays erscheinen im DVR nur noch nahe am Live-Rand: standardmäßig in den letzten 5 Minuten, kanalweise auf 10 Minuten umstellbar.
+- Auswahl unter den Player-Overlay-Einstellungen; Texte, Messwerte, Logos und Links des Overlays werden gemeinsam ausgeblendet. Zurück am Livebild erscheinen sie wieder.
+- Die Prüfung berücksichtigt Zurückspulen, Pause und die Rückkehr aus einem Hintergrund-Tab. Ohne gültiges DVR-Zeitfenster bleibt das Overlay zunächst verborgen.
+- Bereits gespeicherte öffentliche Player erhalten die Korrektur beim Neustart; ohne neue Einstellung gilt automatisch die 5-Minuten-Grenze.
+- Kein zusätzliches Encoding. Eingebrannte Live-Overlays und Zeitrafferbilder werden nicht verändert. Innerhalb der gewählten Zeitspanne werden weiterhin aktuelle, keine historischen Messwerte gezeigt.
 
-- **FTPS-Zertifikate bestätigen:** Bei nicht vertrauenswürdiger Zertifikatskette kann der Nutzer nach Prüfung des SHA-256-Fingerabdrucks dem konkreten Serverzertifikat vertrauen. Die Freigabe ist an Host und Port gebunden; ein anderes Zertifikat wird abgelehnt. Steuer- und Datenverbindung werden geprüft. Der Bestätigungsdialog ist mittig und mobil bedienbar. Explizites FTPS verwendet standardmäßig Port 21.
-- **Tages- und Saisonzeitraffer parallel:** Dritte Betriebsart „Saisonzeitraffer + Tageszeitraffer“. Tagesparameter werden gemeinsam mit dem reinen Tagesmodus gespeichert. Beim Wechsel in den reinen Saisonmodus werden laufende oder pausierte Tagesprojekte beendet und exportiert; umgekehrt beendet der reine Tagesmodus Saisonprojekte. Aufnahmen bleiben erhalten.
-- **HEVC-Wiedergabe:** Der MP4-Parser ermittelt vollständige hvc1-/hev1-Codec-Angaben aus der hvcC-Konfiguration, einschließlich Profil, Kompatibilität, Tier, Level und Constraints. Behebt die Ablehnung von Streams mit unvollständiger Codec-Kennung, bestätigt mit Reolink 1212A auch am Handy. Kein zusätzliches Video-Transcoding; passende Browser-/Gerätedecoder bleiben erforderlich.
-- **Player-Overlays in Zeitrafferbilder einbrennen:** Neue globale Option zeichnet die kanalweisen Texte und Logos beim Einzelbild ein, ohne den Livestream neu zu codieren. Der mittige Overlay-Dialog bearbeitet direkt die gemeinsamen Player-Einstellungen des gewählten Kanals. Die Werte bleiben anschließend als Bildbestandteil in Vorschau und MP4 erhalten. Alte Bilder werden nicht rückwirkend verändert.
-- **Einheitliche Einbrenn-Abstände:** Text und Logos liegen 24 Pixel vom Bildrand, das Textpolster beträgt 16 Pixel – wie beim bisherigen Einbrennfilter. Schrift, Farben und Größen bleiben kanalweise konfiguriert.
-- **Bestehende Player aktualisieren:** Vorhandene generierte Playerseiten erhalten den korrigierten Video.js-Player und neue Cache-Kennungen beim Start.
+Alle Änderungen aus dev34 bleiben enthalten: FTPS-Zertifikatsfreigabe, Tages- und Saisonzeitraffer parallel, HEVC-Codec-Erkennung und Player-Overlays in Zeitrafferbildern mit einheitlichen Abständen.
 
-Nach dem Update Oberfläche und Player mit **Strg+F5** neu laden. Die neue Zeitraffer-Overlay-Option ist standardmäßig aus; das Player-Overlay muss zusätzlich beim jeweiligen Kanal aktiviert sein. Verwendet werden die zuletzt erfolgreich abgerufenen Messwerte. Fehlende oder veraltete Messwerte erscheinen als `--`. Die zwei Optionen für bereits eingebrannte Stream-Overlays und zusätzliche Player-Overlays sind unabhängig; bei gleichzeitiger Aktivierung können doppelte Einblendungen entstehen.
-
-Alle bisherigen DVR-, Kanal-, Audio- und CPU/I/O-Wait-Korrekturen bleiben enthalten. Kanäle, Konfigurationen und vorhandene Aufnahmen werden nicht pauschal gelöscht. Die offizielle Veröffentlichung baut und prüft **linux/amd64** und **linux/arm64**.
+Nach dem Update Oberfläche und eingebettete Player neu laden (gegebenenfalls Strg+F5).

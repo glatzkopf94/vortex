@@ -60,7 +60,10 @@ class OverlayTests(unittest.TestCase):
   def pixel(x,y):return pixels[(y*640+x)*3:(y*640+x)*3+3]
   self.assertGreater(pixel(600,25)[0],180)
   self.assertLess(pixel(300,100)[0],10)
-  self.assertTrue(any(pixels[(y*640+10)*3:(y*640+350)*3].count(255)>5 for y in range(300,350)))
+  # YUV/RGB SIMD rounding differs by architecture; visible white text need not
+  # contain exact 255 samples. Require neutral bright pixels in the text area.
+  bright=sum(min(pixel(x,y))>180 for y in range(300,350) for x in range(10,350))
+  self.assertGreater(bright,20)
  def test_spacing_matches_legacy_burnin_pixels_at_all_positions(self):
   # Reference: pre-existing TextOverlay.js POSITIONS and boxborderw=16.
   positions={'top-left':('24','24'),'top-center':('(w-tw)/2','24'),

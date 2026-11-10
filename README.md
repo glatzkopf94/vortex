@@ -1,4 +1,4 @@
-# Vortex 1.5 Beta / 0.3.0-dev31
+# Vortex 1.7 Beta / 0.3.0-dev34
 
 Inoffizieller Fork des datarhei Restreamers fuer Nistkasten-Livestreams,
 hochaufgeloeste HEVC-/H.265-Kameras, aktuelle FFmpeg-Komponenten, frei
@@ -10,14 +10,12 @@ Quellrepository und Container-Image:
 - `https://github.com/glatzkopf94/vortex`
 - `ghcr.io/glatzkopf94/restreamer-nistkastenlivestream`
 
-Das Release übernimmt die lokalen **Tests 22–25** auf dev24: Zeitraffer-Aufbewahrung,
-Bildqualität, Fortschrittsanzeigen und Vortex-Design. Alle Änderungen stehen im [Changelog](CHANGELOG.md).
+Neu in **1.7 Beta**: FTPS-Zertifikatsbestätigung, parallele Tages- und
+Saisonzeitraffer mit gemeinsamen Tagesparametern, vollständige HEVC-Codec-Erkennung
+und Player-Overlays als feste Bildbestandteile im Zeitraffer ohne Live-Transcoding.
+Alle Änderungen stehen im [Changelog](CHANGELOG.md). Anleitung: [Zeitraffer](TIMELAPSE.md).
 
-Neu in 1.5: Tages- und Saisonzeitraffer, private und öffentliche Vorschauen,
-MP4-Export, FTP/FTPS-Ablage, Speicheranzeige, Cache-/RAM-Korrekturen und Schutz
-der konfigurierten DVR-Haltezeit. Anleitung: [Zeitraffer](TIMELAPSE.md).
-
-Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev31`
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev34`
 veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
 bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
 verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und

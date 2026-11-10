@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from solar import window
 import transfer
+import player_overlay
 
 UUID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 DEFAULT = dict(mode='daily', interval=120, fps=25, width=0, formatVersion=2, timezone='Europe/Berlin', window='full', latitude=51.0, longitude=10.0,
@@ -48,6 +49,37 @@ def settings(raw):
         if not isinstance(s[k], (int,float)) or not math.isfinite(s[k]) or abs(s[k]) > limit: raise ValueError('Ungueltiger Standort')
     ZoneInfo(s['timezone'])
     return s
+
+
+# Channel profiles are persistent; project snapshots remain flat daily/season
+# settings so rendering, exports and existing databases remain compatible.
+PROFILE_KEYS=('interval','fps','width','formatVersion','timezone','window','latitude','longitude',
+              'startEvent','endEvent','startOffset','endOffset')
+
+def channel_settings(raw,previous=None):
+    if not isinstance(raw,dict):raise ValueError('Einstellungen muessen ein Objekt sein')
+    mode=raw.get('mode','daily')
+    if mode not in ('daily','season','both'):raise ValueError('Ungueltige Betriebsart')
+    previous=previous or raw
+    primary='season' if mode=='season' else 'daily'
+    profiles={}
+    for kind in ('daily','season'):
+        key=kind+'Settings'
+        inherited=previous.get(key) or {k:previous[k] for k in PROFILE_KEYS if k in previous}
+        if key in raw and not isinstance(raw[key],dict):raise ValueError('Ungültiges Aufnahmeprofil')
+        values={**inherited,**raw.get(key,{})}
+        if kind==primary:values.update({k:raw[k] for k in PROFILE_KEYS if k in raw})
+        # A legacy daily profile may use 15 seconds; initial season default is >=30.
+        if kind=='season' and key not in raw and key not in previous and primary!='season':
+            values['interval']=max(30,values.get('interval',DEFAULT['interval']))
+        checked=settings({**values,'mode':kind})
+        profiles[key]={k:checked[k] for k in PROFILE_KEYS}
+    common=settings({**raw,**profiles[primary+'Settings'],'mode':primary})
+    return {**common,'mode':mode,**profiles}
+
+def project_settings(channel,kind):
+    profile=channel_settings(channel)
+    return settings({**profile,**profile[kind+'Settings'],'mode':kind})
 
 
 def atomic(path, data):
@@ -147,7 +179,8 @@ class Service:
         # frames and intentionally retained originals are never removed here.
         for p in self.rows('SELECT * FROM projects'):
             folder=self.root/p['id']
-            for temporary in folder.glob('.*.capture.jpg'): temporary.unlink(missing_ok=True)
+            for pattern in ('.*.capture.jpg','.*.overlay.txt'):
+                for temporary in folder.glob(pattern): temporary.unlink(missing_ok=True)
             if not json.loads(p['settings'])['keepFrames']:
                 pending={row['slot'] for row in self.rows('SELECT slot FROM frames WHERE project=?',(p['id'],))}
                 completed={row['slot'] for row in self.rows("SELECT slot FROM attempts WHERE project=? AND status='done'",(p['id'],))}
@@ -189,16 +222,27 @@ class Service:
 
     def configure(self, channel, raw):
         if channel not in {c['id'] for c in self.known_channels()}: raise ValueError('Unbekannter Kanal')
-        s=settings(raw)
+        previous=self.rows('SELECT settings FROM channels WHERE id=?',(channel,))
+        before=json.loads(previous[0]['settings']) if previous else None
+        s=channel_settings(raw,before)
+        now=time.time()
         self.write('INSERT INTO channels(id,settings,armed) VALUES(?,?,0) ON CONFLICT(id) DO UPDATE SET settings=excluded.settings,error=\'\'',(channel,json.dumps(s)))
-        # Existing recordings retain interval/resolution; publicity can be revoked immediately.
+        # Each project keeps its own format; intervals follow its shared profile.
         with self.lock, self.db:
             for p in self.rows('SELECT * FROM projects WHERE channel=?',(channel,)):
                 old=json.loads(p['settings']); old['public']=s['public']; old['nas']=s['nas']
                 if p['status'] in ('recording','paused'):
-                    old['interval']=s['interval']
-                    self.db.execute('UPDATE projects SET next=MIN(next,?) WHERE id=?',(time.time()+s['interval'],p['id']))
+                    kind='daily' if p['day'] else 'season'
+                    old['interval']=s[kind+'Settings']['interval']
+                    if s['mode'] not in (kind,'both'):
+                        self.db.execute("UPDATE projects SET status='finished',ends=?,export=1 WHERE id=?",(now,p['id']))
+                    else:self.db.execute('UPDATE projects SET next=MIN(next,?) WHERE id=?',(now+old['interval'],p['id']))
                 self.db.execute('UPDATE projects SET settings=? WHERE id=?',(json.dumps(old),p['id']))
+        # An already started plan continues when adding a second recording type.
+        armed=self.rows('SELECT armed FROM channels WHERE id=?',(channel,))[0]['armed']
+        if armed and s['enabled'] and self.channel_active(channel) and s['mode'] in ('season','both') and before and before.get('mode')=='daily':
+            if not self.rows("SELECT id FROM projects WHERE channel=? AND day IS NULL AND status IN ('recording','paused')",(channel,)):
+                self.create_project(channel,project_settings(s,'season'),now)
         return s
 
     def create_project(self, channel, s, now, day=None, start=None, end=None):
@@ -243,9 +287,10 @@ class Service:
             self.next_retention=0
             return self.global_settings()
         if action=='configure_global':
-            value=request.get('includeBurnedOverlays')
-            if not isinstance(value,bool): raise ValueError('Boolescher Wert erwartet')
-            self.write('INSERT OR REPLACE INTO global_settings VALUES(?,?)',('includeBurnedOverlays',json.dumps(value)))
+            keys=[key for key in ('includeBurnedOverlays','includePlayerOverlays') if key in request]
+            if not keys or any(type(request[key]) is not bool for key in keys): raise ValueError('Boolescher Wert erwartet')
+            with self.lock,self.db:
+                for key in keys: self.db.execute('INSERT OR REPLACE INTO global_settings VALUES(?,?)',(key,json.dumps(request[key])))
             return self.global_settings()
         if action=='test_transfer':
             if self.transfer_test_job and not self.transfer_test_job.done(): raise ValueError('Verbindungstest läuft bereits.')
@@ -290,10 +335,13 @@ class Service:
             if not rows: raise ValueError('Zuerst Kanaleinstellungen speichern.')
             s=json.loads(rows[0]['settings'])
             if not s['enabled']: raise ValueError('Zuerst Aufnahmeplan aktivieren und Einstellungen speichern.')
-            if s['mode']=='season':
-                pid=self.create_project(channel,s,now)
+            if s['mode'] in ('season','both'):
+                existing=self.rows("SELECT id FROM projects WHERE channel=? AND day IS NULL AND status IN ('recording','paused')",(channel,))
+                if existing and s['mode']=='season':raise ValueError('Es gibt bereits ein laufendes Saisonprojekt.')
+                pid=existing[0]['id'] if existing else self.create_project(channel,project_settings(s,'season'),now)
                 self.write('UPDATE channels SET armed=1 WHERE id=?',(channel,))
-                return {'id':pid}
+                if s['mode']=='both':self.schedule(now)
+                return {'id':pid,'armed':True}
             self.write('UPDATE channels SET armed=1 WHERE id=?',(channel,))
             self.schedule(now)
             return {'armed':True}
@@ -342,7 +390,8 @@ class Service:
     def schedule(self, now):
         for channel in self.rows('SELECT * FROM channels'):
             s=json.loads(channel['settings'])
-            if not channel['active'] or not channel['armed'] or not s['enabled'] or s['mode']!='daily': continue
+            if not channel['active'] or not channel['armed'] or not s['enabled'] or s['mode'] not in ('daily','both'): continue
+            s=project_settings(s,'daily')
             today=datetime.fromtimestamp(now,ZoneInfo(s['timezone'])).date()
             self.write('DELETE FROM deleted_days WHERE channel=? AND day<?',(channel['id'],(today-timedelta(days=2)).isoformat()))
             try:
@@ -370,9 +419,10 @@ class Service:
 
     def global_settings(self):
         rows=self.rows('SELECT value FROM global_settings WHERE key=?',('includeBurnedOverlays',))
+        player=self.rows('SELECT value FROM global_settings WHERE key=?',('includePlayerOverlays',))
         retention=self.rows('SELECT value FROM global_settings WHERE key=?',('retentionDays',))
         days=json.loads(retention[0]['value']) if retention else 0
-        return {'includeBurnedOverlays':bool(rows and json.loads(rows[0]['value']) is True),
+        return {'includePlayerOverlays':bool(player and json.loads(player[0]['value']) is True),'includeBurnedOverlays':bool(rows and json.loads(rows[0]['value']) is True),
                 'retentionDays':days if type(days) is int and days in (0,1,3,7) else 0,'qualities':self.quality_settings()}
 
     def quality_settings(self):
@@ -548,7 +598,7 @@ class Service:
 
     def capture(self,p,slot):
         folder=self.root/p['id']; folder.mkdir(exist_ok=True)
-        path=folder/f'{slot}.jpg'; temp=folder/f'.{slot}.capture.jpg'
+        path=folder/f'{slot}.jpg'; temp=folder/f'.{slot}.capture.jpg'; overlay_text=folder/f'.{slot}.overlay.txt'
         try:
             self.require_space(16*1024**2)
             s=json.loads(p['settings'])
@@ -563,9 +613,12 @@ class Service:
             height=round(width*s['sourceHeight']/s['sourceWidth']) if s.get('formatVersion',1)>=2 else width*9//16
             width+=width%2; height+=height%2
             capture_args,ordinary=self.capture_input(p['channel'])
+            base=(ordinary+',' if ordinary else '')+f'scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2'
+            graph=player_overlay.capture_filter(self.core_db,self.data,p['channel'],width,height,base,overlay_text) if self.global_settings()['includePlayerOverlays'] else None
+            filtering=['-filter_complex',graph,'-map','[tlout]'] if graph else ['-vf',base]
             try:
-                run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-threads','1','-rw_timeout','8000000',*capture_args,
-                 '-frames:v','1','-an','-vf',(ordinary+',' if ordinary else '')+f'scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2',
+                run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-threads','1','-filter_complex_threads','1','-rw_timeout','8000000',*capture_args,
+                 '-frames:v','1','-an',*filtering,
                  '-threads','1','-q:v','3','-y',str(temp)],30)
             except (RuntimeError,subprocess.TimeoutExpired):
                 # FFmpeg diagnostics may contain camera URLs/passwords.
@@ -580,7 +633,9 @@ class Service:
         except Exception as e:
             self.write('UPDATE projects SET missed=missed+1,error=? WHERE id=?',(f'Aufnahmeluecke: {type(e).__name__}: {str(e)[:200]}',p['id']))
             self.write("UPDATE attempts SET status='failed' WHERE project=? AND slot=?",(p['id'],slot))
-        finally: temp.unlink(missing_ok=True)
+        finally:
+            temp.unlink(missing_ok=True)
+            overlay_text.unlink(missing_ok=True)
 
     def progress_args(self, pid, phase, duration):
         path=self.root/pid/'ffmpeg-progress.txt'
@@ -823,7 +878,7 @@ class Service:
         except (OSError,ValueError): target_status={'state':'idle'}
         if self.transfer_pending: target_status={'state':'preparing','origin':self.transfer_plan['origin']}
         channels={c['id']:c for c in self.rows('SELECT * FROM channels')}
-        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'active':bool(channels.get(c['id'],{}).get('active',False)),'armed':bool(channels.get(c['id'],{}).get('armed',False)),'settings':json.loads(channels[c['id']]['settings']) if c['id'] in channels else DEFAULT,'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
+        return {'globalSettings':self.global_settings(),'transfer':target,'transferTest':(self.transfer_test_job.result() if self.transfer_test_job.done() else {'state':'running','message':'Verbindung wird geprüft …'}) if self.transfer_test_job else None,'transferStatus':target_status,'projects':result,'channels':[{**c,'active':bool(channels.get(c['id'],{}).get('active',False)),'armed':bool(channels.get(c['id'],{}).get('armed',False)),'settings':channel_settings(json.loads(channels[c['id']]['settings'])) if c['id'] in channels else channel_settings(DEFAULT),'error':channels.get(c['id'],{}).get('error','')} for c in self.known_channels()], 'quotaBytes':self.quota,'reserveBytes':self.min_free,'storageBytes':self.last_usage[1],'diskFreeBytes':shutil.disk_usage(self.root).free,'diskTotalBytes':shutil.disk_usage(self.root).total}
 
     def close(self):
         self.capture_pool.shutdown(wait=True); self.render_pool.shutdown(wait=True); self.archive_pool.shutdown(wait=True); self.transfer_pool.shutdown(wait=True); self.transfer_test_pool.shutdown(wait=True); self.db.close()

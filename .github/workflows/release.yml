@@ -79,7 +79,7 @@ jobs:
 
       - name: FFmpeg fuer Diensttests installieren
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg python3-pyftpdlib
+          sudo apt-get update && sudo apt-get install -y ffmpeg python3-pyftpdlib python3-openssl
 
       - name: Statische Tests
         shell: bash
@@ -89,6 +89,9 @@ jobs:
           python3 tests/test-dvr-retention.py
           python3 tests/test-timelapse.py
           python3 tests/test-timelapse-transfer.py
+          python3 tests/test-ftps-trust.py
+          python3 tests/test-timelapse-combined.py
+          python3 tests/test-timelapse-player-overlay.py
           node tests/test-timelapse-poster.cjs
           python3 tests/test-player-ui.py
           python3 tests/test-player-cleanup.py
@@ -166,6 +169,7 @@ jobs:
             sleep 2
           done
           ./tests/smoke-test.sh
+          docker run --rm -i --entrypoint python3 "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}" -c 'import sys; sys.path.insert(0,"/core/bin/timelapse"); __file__="/core/test-timelapse-player-overlay.py"; exec(compile(sys.stdin.read(),__file__,"exec"))' < tests/test-timelapse-player-overlay.py
           python3 tests/test-container-restart.py "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}"
 
   publish:

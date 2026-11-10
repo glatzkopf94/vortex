@@ -151,13 +151,13 @@ def migrate(data, ui):
         if not script or "var player = videojs('player', config)" not in script.group():
             continue
         updated = page[:script.start()] + template_script.group() + page[script.end():]
-        updated = ASSET_LINK.sub(lambda match: match.group(0).split("=", 1)[0] + '="' + match.group(1) + '?nkl=1.5-beta-dev24"', updated)
+        updated = ASSET_LINK.sub(lambda match: match.group(0).split("=", 1)[0] + '="' + match.group(1) + '?nkl=1.7-beta-dev34"', updated)
         if 'http-equiv="Cache-Control"' not in updated:
             updated = updated.replace("<head>", '<head>\n<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />', 1)
         if updated != page:
             replace_atomically(path, updated.encode("utf-8"))
 
-    for name in ("video-js-skin.min.css", "timeline-markers.js"):
+    for name in ("video-js-skin.min.css", "timeline-markers.js", "video.min.js"):
         source = ui / "_player/videojs/dist" / name
         target = data / "player/videojs/dist" / name
         if target.parent.is_dir() and source.is_file():

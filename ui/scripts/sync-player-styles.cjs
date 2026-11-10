@@ -7,3 +7,5 @@ for(const name of ['src/misc/Player/video-js-skin-public.min.css','public/_playe
 fs.writeFileSync(path.join(root,'src/misc/Player/video-js-skin-internal.min.css'),read('video-js-skin-internal.css'));
 
 fs.writeFileSync(path.join(root,'public/_player/videojs/dist/timeline-markers.js'),read('timelineMarkers.js'));
+
+require('./patch-hevc.cjs').patchAll().catch(error=>{console.error(error);process.exitCode=1;});

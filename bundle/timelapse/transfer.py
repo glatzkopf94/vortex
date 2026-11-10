@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # Modified 2026-10-11: validated FTP connection tests and actionable errors.
 """Bounded FTP/explicit-FTPS worker for local MP4 exports. No local deletion."""
+import hashlib
+import hmac
 import ftplib
 import io
 import socket
@@ -18,7 +20,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import unicodedata
 
-DEFAULT={'enabled':False,'protocol':'ftps','host':'','port':21,'username':'','password':'','directory':'/','intervalMinutes':60,'mode':'both','autoChannels':[],'onlyFinished':False}
+DEFAULT={'enabled':False,'protocol':'ftps','host':'','port':21,'username':'','password':'','directory':'/','intervalMinutes':60,'mode':'both','autoChannels':[],'onlyFinished':False,'tlsTrust':None}
 
 def read_config(root):
     path=Path(root)/'transfer-config.json'
@@ -50,12 +52,84 @@ def validate(root,raw):
     if any(part=='..' for part in config['directory'].split('/')):raise ValueError('Zielordner darf kein .. enthalten')
     if config['enabled'] and (not config['host'] or not config['username']):raise ValueError('Server und Benutzername erforderlich')
     if '/' in config['host'] or '://' in config['host']:raise ValueError('Server ohne Protokoll oder Pfad eingeben')
+    trust=config.get('tlsTrust')
+    if trust is not None:
+        if not isinstance(trust,dict) or set(trust)!={'host','port','sha256'}:
+            raise ValueError('Ungültige Zertifikatsfreigabe')
+        if not isinstance(trust['sha256'],str) or not re.fullmatch(r'[0-9a-fA-F]{64}',trust['sha256']):
+            raise ValueError('Ungültiger SHA-256-Fingerabdruck')
+        if config['protocol']!='ftps' or trust['host']!=config['host'] or type(trust['port']) is not int or trust['port']!=config['port']:
+            config['tlsTrust']=None
+        else:config['tlsTrust']={**trust,'sha256':trust['sha256'].lower()}
     return config
 
 def configure(root,raw):
     config=validate(root,raw)
     save_json(Path(root)/'transfer-config.json',config,private=True)
     return safe_config(config)
+
+class CertificatePinError(ssl.SSLError):
+    pass
+
+
+def check_fingerprint(sock,expected):
+    actual=hashlib.sha256(sock.getpeercert(binary_form=True)).hexdigest()
+    if not hmac.compare_digest(actual,expected):
+        raise CertificatePinError('Das Serverzertifikat hat sich geändert.')
+
+
+class PinnedFTP_TLS(ftplib.FTP_TLS):
+    """Explicit, endpoint-scoped trust; check BEFORE USER/PASS and data IO."""
+    def __init__(self,fingerprint,timeout):
+        context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname=False
+        context.verify_mode=ssl.CERT_NONE
+        super().__init__(context=context,timeout=timeout)
+        self.fingerprint=fingerprint
+
+    def auth(self):
+        result=super().auth()
+        try:check_fingerprint(self.sock,self.fingerprint)
+        except BaseException:
+            self.close()
+            raise
+        return result
+
+    def ntransfercmd(self,cmd,rest=None):
+        connection,size=super().ntransfercmd(cmd,rest)
+        try:
+            if not self._prot_p:raise CertificatePinError('Unverschlüsselte Datenverbindung abgelehnt.')
+            check_fingerprint(connection,self.fingerprint)
+        except BaseException:
+            connection.close()
+            self.close()
+            raise
+        return connection,size
+
+
+def ftp_client(config,timeout):
+    if config['protocol']=='ftp':return ftplib.FTP(timeout=timeout)
+    trust=config.get('tlsTrust')
+    if trust:
+        if trust.get('host')!=config['host'] or trust.get('port')!=config['port']:
+            raise CertificatePinError('Zertifikatsfreigabe gehört zu einem anderen Server.')
+        return PinnedFTP_TLS(trust['sha256'],timeout)
+    return ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=timeout)
+
+
+def certificate_challenge(config,error):
+    # Discovery only: never login, send credentials, list or write files here.
+    context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname=False;context.verify_mode=ssl.CERT_NONE
+    ftp=ftplib.FTP_TLS(context=context,timeout=8)
+    try:
+        ftp.connect(config['host'],config['port']);ftp.auth()
+        digest=hashlib.sha256(ftp.sock.getpeercert(binary_form=True)).hexdigest()
+        return {'state':'certificate_required','message':friendly_error(error),
+                'certificate':{'id':uuid.uuid4().hex,'host':config['host'],'port':config['port'],
+                               'sha256':digest,'changed':bool(config.get('tlsTrust'))}}
+    finally:ftp.close()
+
 
 def filenames(projects,names):
     result={};groups={}
@@ -146,7 +220,7 @@ def execute(root,channel=None,plan=None):
             last_write=time.monotonic()
     try:
         progress(phase='Verbindung und Anmeldung')
-        ftp=ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=20) if config['protocol']=='ftps' else ftplib.FTP(timeout=20)
+        ftp=ftp_client(config,20)
         ftp.connect(config['host'],config['port']);ftp.login(config['username'],config['password'])
         if config['protocol']=='ftps':ftp.prot_p()
         ftp.timeout=120
@@ -184,6 +258,8 @@ def execute(root,channel=None,plan=None):
 
 
 def friendly_error(error,stage='Übertragung'):
+    if isinstance(error,CertificatePinError):
+        return 'Das Zertifikat stimmt nicht mit der gespeicherten Freigabe überein. Verbindung abgebrochen. Bitte Verbindung testen und Zertifikat erneut prüfen.'
     if isinstance(error,ssl.SSLCertVerificationError):
         return 'TLS-Zertifikat nicht vertrauenswürdig oder nicht für diesen Servernamen gültig. Einen zum Zertifikat passenden Hostnamen und ein vertrauenswürdiges Zertifikat verwenden.'
     if isinstance(error,ssl.SSLError):return 'TLS-Verbindung fehlgeschlagen. Der Server muss explizites FTPS (AUTH TLS) unterstützen.'
@@ -203,7 +279,7 @@ def friendly_error(error,stage='Übertragung'):
 def test_connection(config):
     ftp=None;temporary=None;stage='Verbindung';entries=[]
     try:
-        ftp=ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=8) if config['protocol']=='ftps' else ftplib.FTP(timeout=8)
+        ftp=ftp_client(config,8)
         ftp.connect(config['host'],config['port']);stage='Anmeldung'
         ftp.login(config['username'],config['password'])
         if config['protocol']=='ftps':ftp.prot_p()
@@ -218,6 +294,10 @@ def test_connection(config):
         stage='Testdatei löschen';ftp.delete(temporary);temporary=None
         return {'state':'success','message':'Verbindung, Anmeldung, Verzeichniszugriff, Schreiben und Löschen erfolgreich.','entries':entries}
     except Exception as error:
+        if config['protocol']=='ftps' and isinstance(error,(ssl.SSLCertVerificationError,CertificatePinError)):
+            if ftp:ftp.close()
+            try:return certificate_challenge(config,error)
+            except Exception:pass
         return {'state':'error','message':friendly_error(error,stage),'entries':entries}
     finally:
         if ftp:

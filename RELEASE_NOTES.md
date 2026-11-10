@@ -1,14 +1,14 @@
-# Vortex 1.6 Beta / 0.3.0-dev33
+# Vortex 1.7 Beta / 0.3.0-dev34
 
-Hotfix auf Basis des erfolgreich lokal installierten Test40.
+Diese Version übernimmt die lokal erprobten Erweiterungen bis Test45 auf Basis von dev33.
 
-- DVR abschalten stellt die Live-Ausgabe auf RAM/memfs mit sechs Segmenten und aktiver Bereinigung zurück. Bewusst eingestellte Disk-Ausgabe wird beim bloßen Öffnen der Einstellungen beibehalten.
-- Kanalübersicht liest beim Öffnen den aktuellen Serverbestand ein. Fehlende Namen oder abweichende Referenzen verstecken keinen kanonischen Hauptprozess mehr. Ungespeicherte Kanäle bleiben erhalten.
-- Kanallöschung prüft die Ergebnisse und entfernt den Hauptprozess erst nach seinen Hilfsprozessen. Bei Fehlern bleibt der Kanal sichtbar und die Löschung wiederholbar.
-- Audiofilter übernehmen unbekannte Abtastraten und Kanalanordnungen aus dem Eingang, statt ungültige undefined-Parameter an FFmpeg zu geben.
-- Live-HLS löscht Segmente nicht mehr anhand einer geschätzten Dauer vorzeitig. Die Begrenzung über die Segmentanzahl bleibt bestehen.
-- CPU-Rechenlast und I/O-Wartezeit werden getrennt erfasst. Die Fußleiste zeigt „12% CPU | 0% I/O-Wait | 24% MEM“ mit farbigen Prozentwerten: 0–25 grün, 26–49 hellgrün, 50–70 gelb, 71–90 orange, 91–98 rot und 99–100 violett. Warnsymbol ab 75%; vorhandene Speicher- und Netzwerkwarnungen bleiben erhalten.
+- **FTPS-Zertifikate bestätigen:** Bei nicht vertrauenswürdiger Zertifikatskette kann der Nutzer nach Prüfung des SHA-256-Fingerabdrucks dem konkreten Serverzertifikat vertrauen. Die Freigabe ist an Host und Port gebunden; ein anderes Zertifikat wird abgelehnt. Steuer- und Datenverbindung werden geprüft. Der Bestätigungsdialog ist mittig und mobil bedienbar. Explizites FTPS verwendet standardmäßig Port 21.
+- **Tages- und Saisonzeitraffer parallel:** Dritte Betriebsart „Saisonzeitraffer + Tageszeitraffer“. Tagesparameter werden gemeinsam mit dem reinen Tagesmodus gespeichert. Beim Wechsel in den reinen Saisonmodus werden laufende oder pausierte Tagesprojekte beendet und exportiert; umgekehrt beendet der reine Tagesmodus Saisonprojekte. Aufnahmen bleiben erhalten.
+- **HEVC-Wiedergabe:** Der MP4-Parser ermittelt vollständige hvc1-/hev1-Codec-Angaben aus der hvcC-Konfiguration, einschließlich Profil, Kompatibilität, Tier, Level und Constraints. Behebt die Ablehnung von Streams mit unvollständiger Codec-Kennung, bestätigt mit Reolink 1212A auch am Handy. Kein zusätzliches Video-Transcoding; passende Browser-/Gerätedecoder bleiben erforderlich.
+- **Player-Overlays in Zeitrafferbilder einbrennen:** Neue globale Option zeichnet die kanalweisen Texte und Logos beim Einzelbild ein, ohne den Livestream neu zu codieren. Der mittige Overlay-Dialog bearbeitet direkt die gemeinsamen Player-Einstellungen des gewählten Kanals. Die Werte bleiben anschließend als Bildbestandteil in Vorschau und MP4 erhalten. Alte Bilder werden nicht rückwirkend verändert.
+- **Einheitliche Einbrenn-Abstände:** Text und Logos liegen 24 Pixel vom Bildrand, das Textpolster beträgt 16 Pixel – wie beim bisherigen Einbrennfilter. Schrift, Farben und Größen bleiben kanalweise konfiguriert.
+- **Bestehende Player aktualisieren:** Vorhandene generierte Playerseiten erhalten den korrigierten Video.js-Player und neue Cache-Kennungen beim Start.
 
-Nach dem Update Oberfläche und Player neu laden. Bereits vorhandene fehlerhafte Audioeinstellungen einmal neu speichern. Bereits früher mit ausgeschaltetem DVR auf Disk verbliebene Kanäle bei Bedarf ausdrücklich auf RAM und sechs Segmente umstellen. Bestehende Kanäle, DVR-Aufnahmen und Zeitraffer werden nicht pauschal gelöscht.
+Nach dem Update Oberfläche und Player mit **Strg+F5** neu laden. Die neue Zeitraffer-Overlay-Option ist standardmäßig aus; das Player-Overlay muss zusätzlich beim jeweiligen Kanal aktiviert sein. Verwendet werden die zuletzt erfolgreich abgerufenen Messwerte. Fehlende oder veraltete Messwerte erscheinen als `--`. Die zwei Optionen für bereits eingebrannte Stream-Overlays und zusätzliche Player-Overlays sind unabhängig; bei gleichzeitiger Aktivierung können doppelte Einblendungen entstehen.
 
-Die bisherige H.265-Unterstützung und der optionale H.264-Ersatzstream bleiben enthalten. Die offizielle Veröffentlichung baut und prüft linux/amd64 und linux/arm64.
+Alle bisherigen DVR-, Kanal-, Audio- und CPU/I/O-Wait-Korrekturen bleiben enthalten. Kanäle, Konfigurationen und vorhandene Aufnahmen werden nicht pauschal gelöscht. Die offizielle Veröffentlichung baut und prüft **linux/amd64** und **linux/arm64**.

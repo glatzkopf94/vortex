@@ -1,7 +1,9 @@
+import {profileValues,updateProfile,switchMode,planStarted} from './TimelapseProfiles';
 import React from 'react';
 import LinkIcon from '@mui/icons-material/Link';
 import NotifyContext, {useStatusNotifications} from '../contexts/Notify';
 import TimelapsePreview from './TimelapsePreview';
+import TimelapseOverlay from './TimelapseOverlay';
 import { Box, Button, Checkbox, LinearProgress, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 
 const outline = color => ({'&&&&':{borderColor:color,color:'#fff'},'&&&&:hover':{borderColor:color},'&&&&.Mui-disabled':{borderColor:color,opacity:0.55}});
@@ -9,6 +11,7 @@ const statusText = {recording:'Aufnahme läuft', paused:'Pausiert', finished:'Be
 export default function Timelapse({restreamer,onOpenFTP}) {
   const notify=React.useContext(NotifyContext);
   const [data,setData]=React.useState(null);
+  const [overlayOpen,setOverlayOpen]=React.useState(false);
   const [channel,setChannel]=React.useState(()=>{try{return sessionStorage.getItem('nkl-timelapse-channel')||'';}catch{return '';}});
   const [form,setForm]=React.useState(null);
   const [error,setError]=React.useState('');
@@ -38,10 +41,10 @@ export default function Timelapse({restreamer,onOpenFTP}) {
     else if(!form)setForm({...saved.settings});
   },[data,channel,form]);
   const choose=(id)=>{try{sessionStorage.setItem('nkl-timelapse-channel',id);}catch{}setChannel(id);setForm({...data.channels.find(c=>c.id===id).settings});setNotice('');};
-  const change=(key,value)=>{setForm(previous=>({...previous,[key]:value,...(key==='mode'&&value==='season'?{interval:Math.max(30,previous.interval)}:{})}));setNotice('Ungespeicherte Änderungen – bitte Einstellungen speichern.');};
+  const change=(key,value)=>{setForm(previous=>key==='mode'?switchMode(previous,value):({...previous,[key]:value}));setNotice('Ungespeicherte Änderungen – bitte Einstellungen speichern.');};
   async function action(body) {
     setBusy(true);setError('');setOperation({project:body.project,label:body.action==='export'||body.action==='stop'?'MP4-Verarbeitung wird angefordert …':'Änderung wird gespeichert …'});
-    try {const result=await call(body);if(body.action==='configure')setForm({...result});await refresh();success(body.action==='delete_finished'?`${result.deleted} abgeschlossene ${body.mode==='daily'?'Tages':'Saison'}zeitraffer lokal gelöscht.`:({configure_storage:'Zeitrafferlimit gespeichert. Das neue Limit gilt sofort.',configure_qualities:'Vorschauqualitäten gespeichert. Neue Transcoding-Aufträge verwenden diese Bitraten.',configure_retention:'Automatische Löschung gespeichert.',set_channel_active:'Kanalauswahl gespeichert.',configure_global:'Globale Overlay-Einstellung gespeichert. Gilt für die nächsten Einzelbilder aller Kanäle.',configure_transfer:'Externe Ablage gespeichert.',transfer_now:'Übertragung beauftragt.',configure:'Einstellungen gespeichert. Änderungen an Auflösung/FPS gelten für das nächste Projekt.',start:form?.mode==='season'?'Saisonaufnahme gestartet.':'Aufnahmeplan gestartet. Die Aufnahme erfolgt innerhalb des gespeicherten Zeitfensters.',pause:'Aufnahme pausiert.',resume:'Aufnahme fortgesetzt.',stop:'Aufnahme beendet; Abschlussvideo wird erstellt.',export:'MP4-Aktualisierung beauftragt.',publish:'Veröffentlichung geändert.',delete:'Lokales Projekt gelöscht.'})[body.action] || 'Änderung gespeichert.');return result;}catch(e){setError(String(e.message));}
+    try {const result=await call(body);if(body.action==='configure')setForm({...result});await refresh();success(body.action==='delete_finished'?`${result.deleted} abgeschlossene ${body.mode==='daily'?'Tages':'Saison'}zeitraffer lokal gelöscht.`:({configure_storage:'Zeitrafferlimit gespeichert. Das neue Limit gilt sofort.',configure_qualities:'Vorschauqualitäten gespeichert. Neue Transcoding-Aufträge verwenden diese Bitraten.',configure_retention:'Automatische Löschung gespeichert.',set_channel_active:'Kanalauswahl gespeichert.',configure_global:'Globale Overlay-Einstellung gespeichert. Gilt für die nächsten Einzelbilder aller Kanäle.',configure_transfer:'Externe Ablage gespeichert.',transfer_now:'Übertragung beauftragt.',configure:'Einstellungen gespeichert. Änderungen an Auflösung/FPS gelten für das nächste Projekt.',start:form?.mode==='season'?'Saisonaufnahme gestartet.':form?.mode==='both'?'Saison- und Tagesaufnahmeplan gestartet.':'Aufnahmeplan gestartet. Die Aufnahme erfolgt innerhalb des gespeicherten Zeitfensters.',pause:'Aufnahme pausiert.',resume:'Aufnahme fortgesetzt.',stop:'Aufnahme beendet; Abschlussvideo wird erstellt.',export:'MP4-Aktualisierung beauftragt.',publish:'Veröffentlichung geändert.',delete:'Lokales Projekt gelöscht.'})[body.action] || 'Änderung gespeichert.');return result;}catch(e){setError(String(e.message));}
     finally{setBusy(false);setOperation(null);}
   }
   async function download(project) {
@@ -56,8 +59,35 @@ export default function Timelapse({restreamer,onOpenFTP}) {
       const url=URL.createObjectURL(val);const a=document.createElement('a');a.href=url;a.download=project.filename;a.click();success('MP4-Download an den Browser übergeben.');setTimeout(()=>URL.revokeObjectURL(url),60000);
     }catch(e){setError(String(e.message));}finally{setBusy(false);setOperation(null);}
   }
-  const number=(key,label,props={})=><TextField key={key} label={label} type="number" value={form[key]} onChange={e=>change(key,Number(e.target.value))} inputProps={props} fullWidth/>;
   const select=(key,label,options)=><TextField key={key} select label={label} value={form[key]} onChange={e=>change(key,e.target.value)} fullWidth>{options.map(([v,t])=><MenuItem key={v} value={v}>{t}</MenuItem>)}</TextField>;
+  const profileFields=(kind)=>{
+    const values=profileValues(form,kind);
+    const edit=(key,value)=>{setForm(previous=>updateProfile(previous,kind,key,value));setNotice('Ungespeicherte Änderungen – bitte Einstellungen speichern.');};
+    const number=(key,label,props={})=><TextField key={key} label={label} type="number" value={values[key]} onChange={e=>edit(key,Number(e.target.value))} inputProps={props} fullWidth/>;
+    const select=(key,label,options)=><TextField key={key} select label={label} value={values[key]} onChange={e=>edit(key,e.target.value)} fullWidth>{options.map(([v,t])=><MenuItem key={v} value={v}>{t}</MenuItem>)}</TextField>;
+    return <Box key={kind} sx={{display:'flex',flexDirection:'column',gap:2,p:2,border:'1px solid',borderColor:'divider',borderRadius:1}}>
+      <Typography variant="h3">{kind==='daily'?'Tageszeitraffer':'Saisonzeitraffer'}</Typography>
+      {kind==='daily'&&<Typography variant="body2">Diese Tageseinstellungen gelten gemeinsam für „Tageszeitraffer“ und „Saisonzeitraffer + Tageszeitraffer“.</Typography>}
+        <Box sx={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:2}}>
+          {kind==='daily'?number('interval','Bildintervall in Sekunden',{min:15,max:86400,step:1}):<TextField label="Bildintervall in Minuten" type="text" inputProps={{inputMode:'decimal'}} defaultValue={values.interval/60} key={'minutes-'+channel+'-'+values.interval} onBlur={e=>{const minutes=Number(e.target.value.replace(',','.'));edit('interval',Math.round(minutes*60));}} helperText="0,5 bis 1440 Minuten (ein Bild pro Tag)." fullWidth/>}
+          {number('fps','Videobilder pro Sekunde',{min:1,max:60})}
+          {select('width','Bildbreite',[[0,'Originalauflösung der Streamquelle'],[640,'640 Pixel'],[1280,'1280 Pixel'],[1920,'1920 Pixel'],[3840,'3840 Pixel']])}
+          <TextField label="Zeitzone" value={values.timezone} onChange={e=>edit('timezone',e.target.value)} helperText="Zum Beispiel Europe/Berlin"/>
+        </Box>
+        <Typography variant="body2">Beschleunigung: {values.interval * values.fps}×. 24 Stunden ohne Lücken ergeben etwa {(86400 / values.interval / values.fps).toFixed(1)} Sekunden Video. FPS bestimmen die Abspielgeschwindigkeit, das Intervall die Aufnahmehäufigkeit.</Typography>
+        <Typography variant="body2">Seitenverhältnis bleibt erhalten. Neue Bilder werden mit konstanter Qualität (CRF 18) verarbeitet; die Bitrate richtet sich nach dem Bildinhalt.</Typography>
+        <Typography variant="body2">Täglich: 15 bis 86400 Sekunden. Saison: 0,5 bis 1440 Minuten (ein Bild pro Tag). Intervalländerungen gelten auch für laufende Projekte. Videoformat und Tagesfenster gelten ab dem nächsten Projekt.</Typography>
+        {kind==='daily'&&<>
+          {select('window','Aufnahmefenster',[['full','Ganzer Kalendertag'],['solar','Nach Sonnenstand']])}
+          {values.window==='solar'&&<Box sx={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:2}}>
+            {number('latitude','Breitengrad',{min:-89.8,max:89.8,step:0.001})}{number('longitude','Längengrad',{min:-180,max:180,step:0.001})}
+            {select('startEvent','Beginn',[['sunrise','Sonnenaufgang'],['sunset','Sonnenuntergang']])}{number('startOffset','Beginn: Versatz in Minuten',{min:-360,max:360})}
+            {select('endEvent','Ende',[['sunrise','Sonnenaufgang'],['sunset','Sonnenuntergang']])}{number('endOffset','Ende: Versatz in Minuten',{min:-360,max:360})}
+            <Typography>−60 beginnt eine Stunde davor; +60 endet eine Stunde danach. Sonnenzeiten sind Näherungswerte ohne örtliche Horizontabschattung.</Typography>
+          </Box>}
+        </>}
+    </Box>;
+  };
   return <Stack spacing={2} sx={{p:2,minWidth:0,maxWidth:'100%',overflowWrap:'anywhere','& .MuiButton-outlined:not(.MuiButton-outlinedSecondary)':{color:'#fff',borderColor:'#aab4be',backgroundColor:'#303b45','&:hover':{backgroundColor:'#455461'},'&.Mui-disabled':{color:'#b9c0c7',borderColor:'#66717c',backgroundColor:'#30363c'}}}}>
     <Typography variant="h2">Zeitraffer · lokale Vorschau</Typography>
     <Typography>Eigene Aufnahme und Verarbeitung, unabhängig vom DVR. Eine Vorschau entsteht ab zwei Bildern und wird bei neuen Bildern etwa alle fünf Minuten ergänzt. Fehlzeiten werden übersprungen, nicht mit alten Bildern aufgefüllt.</Typography>
@@ -75,7 +105,11 @@ export default function Timelapse({restreamer,onOpenFTP}) {
       </TextField>
       <Typography variant="body2">Haken werden sofort gespeichert. Nur aktivierte Kanäle stehen unten zur Auswahl und zeigen den Zeitraffer-Button im Player.</Typography>
       <FormControlLabel control={<Checkbox disabled={busy} checked={!!data.globalSettings?.includeBurnedOverlays} onChange={e=>action({action:'configure_global',includeBurnedOverlays:e.target.checked})}/>} label="Eingebrannte Vortex-Overlays im Zeitraffer übernehmen (alle Kanäle)"/>
-      <Typography variant="body2">Ausgeschaltet: Bei Kanälen mit eingebrannten Vortex-Overlays wird pro Einzelbild kurz die ursprüngliche RTSP-/HTTP-Quelle abgerufen. Kameraeigene Einblendungen bleiben erhalten. Eingeschaltet: Bild aus dem laufenden Stream inklusive eingebrannter Overlays. Browser-Player-Overlays werden nicht übernommen. Gilt für neue Bilder, auch in laufenden Aufnahmen.</Typography>
+      <FormControlLabel control={<Checkbox disabled={busy} checked={!!data.globalSettings?.includePlayerOverlays} onChange={e=>action({action:'configure_global',includePlayerOverlays:e.target.checked})}/>} label="Player-Overlays in Zeitrafferbilder einbrennen (alle Kanäle)"/>
+      <Button variant="outlined" sx={outline('#4caf50')} disabled={!data.channels.length} onClick={()=>setOverlayOpen(true)}>Overlay-Einstellungen</Button>
+      {overlayOpen&&<TimelapseOverlay restreamer={restreamer} channels={data.channels} initialChannel={channel} onClose={()=>setOverlayOpen(false)} onSaved={()=>success('Gemeinsame Overlay-Einstellungen des Kanals gespeichert.')}/>}
+      <Typography variant="body2">Player-Overlays: Textwerte und Logos werden nur beim Aufnehmen eines Einzelbildes eingezeichnet. Der Livestream bleibt unverändert. Verwendet werden die gespeicherten Player-Einstellungen und zuletzt aktualisierten Werte des jeweiligen Kanals; veraltete oder fehlende Messwerte erscheinen als --. Die Option gilt für neue Bilder aller Tages- und Saisonaufnahmen. Pro Kanal muss das Player-Overlay aktiviert sein. Bei gleichzeitig übernommenen Stream-Einblendungen können doppelte Overlays entstehen.</Typography>
+      <Typography variant="body2">Ausgeschaltet: Bei Kanälen mit eingebrannten Vortex-Overlays wird pro Einzelbild kurz die ursprüngliche RTSP-/HTTP-Quelle abgerufen. Kameraeigene Einblendungen bleiben erhalten. Eingeschaltet: Bild aus dem laufenden Stream inklusive eingebrannter Overlays. Player-Overlays werden über den zusätzlichen Haken übernommen. Gilt für neue Bilder, auch in laufenden Aufnahmen.</Typography>
       <Stack spacing={2} sx={{minWidth:0}}>
         <Typography variant="h3">Transcoding</Typography>
         <Typography variant="body2">1080p wird im Player bevorzugt, sobald vollständig verfügbar. Zusätzliche Fassungen benötigen CPU und Speicher. Die Originalqualität und MP4-Downloads bleiben erhalten. Änderungen gelten ab dem nächsten Transcoding-Auftrag; bestehende Abschnitte behalten ihre Bitrate. Ausschalten beendet die Warteschlange nach dem laufenden Abschnitt und blendet Zusatzqualitäten aus.</Typography>
@@ -88,30 +122,15 @@ export default function Timelapse({restreamer,onOpenFTP}) {
       <Typography variant="h3">Kanal-Einstellungen</Typography>
       <TextField select label="Kanal" value={data.channels.some(c=>c.id===channel&&c.active)?channel:''} disabled={!data.channels.some(c=>c.active)} onChange={e=>choose(e.target.value)} fullWidth>{data.channels.filter(c=>c.active).map(c=><MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}</TextField>
       {form&&data.channels.some(c=>c.id===channel&&c.active)&&<>
-        {select('mode','Betriebsart',[['daily','Tageszeitraffer'],['season','Saison / manuell']])}
-        <Box sx={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:2}}>
-          {form.mode==='daily'?number('interval','Bildintervall in Sekunden',{min:15,max:86400,step:1}):<TextField label="Bildintervall in Minuten" type="text" inputProps={{inputMode:'decimal'}} defaultValue={form.interval/60} key={'minutes-'+channel} onBlur={e=>{const minutes=Number(e.target.value.replace(',','.'));change('interval',Math.round(minutes*60));}} helperText="0,5 bis 1440 Minuten (ein Bild pro Tag)." fullWidth/>}
-          {number('fps','Videobilder pro Sekunde',{min:1,max:60})}
-          {select('width','Bildbreite',[[0,'Originalauflösung der Streamquelle'],[640,'640 Pixel'],[1280,'1280 Pixel'],[1920,'1920 Pixel'],[3840,'3840 Pixel']])}
-          <TextField label="Zeitzone" value={form.timezone} onChange={e=>change('timezone',e.target.value)} helperText="Zum Beispiel Europe/Berlin"/>
-        </Box>
-        <Typography variant="body2">Beschleunigung: {form.interval * form.fps}×. 24 Stunden ohne Lücken ergeben etwa {(86400 / form.interval / form.fps).toFixed(1)} Sekunden Video. FPS bestimmen die Abspielgeschwindigkeit, das Intervall die Aufnahmehäufigkeit.</Typography>
-        <Typography variant="body2">Seitenverhältnis bleibt erhalten. Neue Bilder werden mit konstanter Qualität (CRF 18) verarbeitet; die Bitrate richtet sich nach dem Bildinhalt.</Typography>
-        <Typography variant="body2">Täglich: 15 bis 86400 Sekunden. Saison: 0,5 bis 1440 Minuten (ein Bild pro Tag). Intervalländerungen gelten auch für laufende Projekte. Videoformat und Tagesfenster gelten ab dem nächsten Projekt.</Typography>
-        {form.mode==='daily'&&<>
-          {select('window','Aufnahmefenster',[['full','Ganzer Kalendertag'],['solar','Nach Sonnenstand']])}
-          {form.window==='solar'&&<Box sx={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:2}}>
-            {number('latitude','Breitengrad',{min:-89.8,max:89.8,step:0.001})}{number('longitude','Längengrad',{min:-180,max:180,step:0.001})}
-            {select('startEvent','Beginn',[['sunrise','Sonnenaufgang'],['sunset','Sonnenuntergang']])}{number('startOffset','Beginn: Versatz in Minuten',{min:-360,max:360})}
-            {select('endEvent','Ende',[['sunrise','Sonnenaufgang'],['sunset','Sonnenuntergang']])}{number('endOffset','Ende: Versatz in Minuten',{min:-360,max:360})}
-            <Typography>−60 beginnt eine Stunde davor; +60 endet eine Stunde danach. Sonnenzeiten sind Näherungswerte ohne örtliche Horizontabschattung.</Typography>
-          </Box>}
-        </>}
+        {select('mode','Betriebsart',[['daily','Tageszeitraffer'],['season','Saisonzeitraffer'],['both','Saisonzeitraffer + Tageszeitraffer']])}
+        {form.mode!=='season'&&profileFields('daily')}
+        {form.mode!=='daily'&&profileFields('season')}
+        <Typography variant="body2">Beim Speichern von „Saisonzeitraffer“ werden laufende und pausierte Tagesaufnahmen beendet und exportiert. Im reinen Tagesmodus werden Saisonaufnahmen beendet. Vorhandene Aufnahmen bleiben erhalten.</Typography>
         {[['enabled','Aufnahmeplan aktiv'],['public','Projekte im öffentlichen Player anbieten'],['nas','Fertige MP4 zusätzlich auf NAS sichern'],['keepFrames','Einzelbilder nach Videoverarbeitung behalten (mehr Speicherbedarf)']].map(([k,label])=><FormControlLabel key={k} control={<Checkbox checked={form[k]} onChange={e=>change(k,e.target.checked)}/>} label={label}/>)}
         <Typography variant="body2">NAS muss im Testcontainer eingebunden sein. Bei Ausfall bleibt der Export lokal. Die NAS-Anbindung hat keinen Einfluss auf Live/DVR.</Typography>
         <Box sx={{display:'flex',flexDirection:'column',gap:1,mt:1}}>
           <Button variant="outlined" sx={outline('#4caf50')} disabled={busy} onClick={()=>action({action:'configure',channel,settings:form})}>Einstellungen speichern</Button>
-          <Button variant="outlined" sx={outline('#4caf50')} disabled={busy||!form.enabled||JSON.stringify(form)!==JSON.stringify(data.channels.find(c=>c.id===channel)?.settings)||(form.mode==='daily'?!!data.channels.find(c=>c.id===channel)?.armed:data.projects.some(p=>p.channel===channel&&!p.day&&['recording','paused'].includes(p.status)))} onClick={()=>action({action:'start',channel})}>Aufnahme starten</Button>
+          <Button variant="outlined" sx={outline('#4caf50')} disabled={busy||!form.enabled||JSON.stringify(form)!==JSON.stringify(data.channels.find(c=>c.id===channel)?.settings)||planStarted(form.mode,!!data.channels.find(c=>c.id===channel)?.armed,data.projects.some(p=>p.channel===channel&&!p.day&&['recording','paused'].includes(p.status)))} onClick={()=>action({action:'start',channel})}>Aufnahme starten</Button>
           <Typography variant="caption">Einstellungen zuerst speichern, dann Aufnahme starten. Tagesaufnahmen wiederholen sich danach automatisch im eingestellten Zeitfenster.</Typography>
         </Box>
       </>}

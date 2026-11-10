@@ -95,3 +95,21 @@ Deaktivieren erhält Einstellungen und Aufnahmen, verhindert weitere geplante
 Einzelbilder und sperrt die öffentliche Zeitraffervorschau. Bereits konfigurierte
 Kanäle bleiben beim Update aktiv; neue/unbenutzte Kanäle starten deaktiviert.
 Offene Player übernehmen Änderungen nach spätestens etwa 30 Sekunden.
+
+## Ergänzungen in Vortex 1.7 Beta
+
+„Saisonzeitraffer + Tageszeitraffer“ führt beide Aufnahmearten parallel aus. Die
+Tagesparameter werden mit dem reinen Tagesmodus geteilt. Ein reiner Modus beendet
+die ausgeschlossene Aufnahmeart und fordert deren Abschluss-Export an.
+
+„Player-Overlays in Zeitrafferbilder einbrennen (alle Kanäle)“ übernimmt Texte und
+Logos beim nächsten Einzelbild. Der Livestream wird dafür nicht umcodiert.
+Der Button „Overlay-Einstellungen“ öffnet einen mittigen, mobil bedienbaren Dialog
+mit Kanalwahl. Er verändert direkt die gespeicherten Player-Einstellungen.
+Änderungen gelten für neue Bilder, bestehende Bilder behalten die damaligen Werte.
+Text und Logos verwenden 24 Pixel Randabstand, der Textkasten 16 Pixel Polster.
+Messwerte stammen aus dem letzten erfolgreichen Player-Overlay-Abruf; nach zweimal
+dem Abrufintervall plus 15 Sekunden werden sie als `--` ersetzt.
+
+FTPS erlaubt nach Fingerabdruckprüfung eine an Host/Port gebundene Zertifikatsfreigabe.
+Explizites FTPS nutzt standardmäßig Port 21; Port 22 gehört zu SFTP.

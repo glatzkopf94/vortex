@@ -14,8 +14,13 @@ RUN cd /ui && \
 	corepack enable && \
 	corepack prepare yarn@1.22.22 --activate && \
 	yarn install --frozen-lockfile && \
+	node scripts/patch-hevc.cjs && \
+	node --test scripts/hevc-codec.test.cjs && \
 	CI=true timeout 15m yarn test-ci --runInBand --forceExit --runTestsByPath \
 		src/Footer.test.js \
+		src/views/TimelapseTransfer.test.js \
+		src/views/TimelapseProfiles.test.js \
+		src/views/TimelapseOverlay.test.js \
 		src/misc/coders/coders.test.js \
 		src/misc/controls/HLS.test.js \
 		src/misc/filters/video/CustomFilters.test.js \

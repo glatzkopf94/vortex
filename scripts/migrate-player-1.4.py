@@ -151,11 +151,18 @@ def migrate(data, ui):
         if not script or "var player = videojs('player', config)" not in script.group():
             continue
         updated = page[:script.start()] + template_script.group() + page[script.end():]
-        updated = ASSET_LINK.sub(lambda match: match.group(0).split("=", 1)[0] + '="' + match.group(1) + '?nkl=1.7-beta-dev36"', updated)
+        updated = ASSET_LINK.sub(lambda match: match.group(0).split("=", 1)[0] + '="' + match.group(1) + '?nkl=1.7-beta-dev37"', updated)
         if 'http-equiv="Cache-Control"' not in updated:
             updated = updated.replace("<head>", '<head>\n<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />', 1)
         if updated != page:
             replace_atomically(path, updated.encode("utf-8"))
+
+    # Shared DejaVu fonts keep the browser overlay aligned with JPEG/FFmpeg.
+    for source in (ui / "_player/videojs/fonts").glob("*"):
+        if source.is_file():
+            target = data / "player/videojs/fonts" / source.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            replace_atomically(target, source.read_bytes()) if target.exists() else shutil.copyfile(source, target)
 
     for name in ("video-js-skin.min.css", "timeline-markers.js", "video.min.js"):
         source = ui / "_player/videojs/dist" / name

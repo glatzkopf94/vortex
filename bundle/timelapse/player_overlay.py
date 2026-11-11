@@ -48,7 +48,8 @@ def capture_filter(core_db, data, channel, width, height, base, text_snapshot, n
     metadata=database.get('metadata',{}).get('process',{}).get('restreamer-ui:ingest:'+channel,{}).get('restreamer-ui',{})
     cfg=(metadata.get('player') or {}).get('overlay') or {}
     if cfg.get('enabled') is not True: return None
-    scale=min(width/1280,height/720)
+    dynamic = width is None and height is None
+    scale=1 if dynamic else min(width/1280,height/720)
     # Match TextOverlay.js: fixed pixel offsets, not browser CSS scaling.
     # drawtext x/y anchor the text; the 16px box extends toward the image edge.
     gap=24; filters=[f'[0:v]{base}[tl0]']; current='tl0'; index=0
@@ -65,6 +66,7 @@ def capture_filter(core_db, data, channel, width, height, base, text_snapshot, n
         Path(text_snapshot).write_text(text,encoding='utf-8')
         font=FONTS.get(cfg.get('font'),'DejaVuSans.ttf')
         size=max(1,round(number(cfg.get('fontSize'),8,200,32)*scale))
+        if dynamic: size="'max(1,round("+str(number(cfg.get('fontSize'),8,200,32))+"*min(w/1280,h/720)))'"
         x,y=position(cfg.get('position'),gap)
         opts=[f'textfile={quoted(text_snapshot)}','expansion=none',
               f'fontfile={quoted("/usr/share/fonts/truetype/dejavu/"+font)}',
@@ -80,9 +82,16 @@ def capture_filter(core_db, data, channel, width, height, base, text_snapshot, n
         image=Path(data)/path.lstrip('/')
         if image.is_symlink() or not image.resolve().is_relative_to(Path(data).resolve()) or not image.is_file():
             raise ValueError('Player-Logo nicht verfügbar')
-        size=max(1,round(min(width*.45,number(logo.get('width'),16,2000,240)*scale)))
+        size=max(1,round(min((1280 if dynamic else width)*.45,number(logo.get('width'),16,2000,240)*scale)))
         opacity=number(logo.get('opacity'),.05,1,1)
-        filters.append(f'movie=filename={quoted(image)},scale={size}:-1,format=rgba,colorchannelmixer=aa={opacity:.3f}[logo{n}]')
+        if dynamic:
+            filters.append(f'[{current}]split[ref{n}][main{n}]')
+            filters.append(f'movie=filename={quoted(image)}[rawlogo{n}]')
+            requested=number(logo.get('width'),16,2000,240)
+            filters.append(f"[rawlogo{n}][ref{n}]scale=w='max(1,round(min(rw*.45,{requested}*min(rw/1280,rh/720))))':h=-1,format=rgba,colorchannelmixer=aa={opacity:.3f}[logo{n}]")
+            current=f'main{n}'
+        else:
+            filters.append(f'movie=filename={quoted(image)},scale={size}:-1,format=rgba,colorchannelmixer=aa={opacity:.3f}[logo{n}]')
         x,y=position(logo.get('position'),gap,True)
         index+=1;filters.append(f'[{current}][logo{n}]overlay=x={x}:y={y}:shortest=1[tl{index}]');current=f'tl{index}'
     filters.append(f'[{current}]null[tlout]')

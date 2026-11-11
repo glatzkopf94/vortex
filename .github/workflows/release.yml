@@ -98,6 +98,7 @@ jobs:
           python3 tests/test-player-cleanup.py
           node tests/test-player-behavior.js
           node tests/test-player-overlay-dvr.cjs
+          node tests/test-player-overlay-layout.cjs
           python3 -m py_compile scripts/migrate-player-1.4.py
           python3 tests/test-timestamp-repair.py
           python3 tests/test-update-agent.py
@@ -172,6 +173,7 @@ jobs:
           done
           ./tests/smoke-test.sh
           docker run --rm -i --entrypoint python3 "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}" -c 'import sys; sys.path.insert(0,"/core/bin/timelapse"); __file__="/core/test-timelapse-player-overlay.py"; exec(compile(sys.stdin.read(),__file__,"exec"))' < tests/test-timelapse-player-overlay.py
+          docker run --rm -i --entrypoint python3 "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}" -c 'import sys; sys.path.insert(0,"/core/bin/timelapse"); __file__="/core/test-snapshot-overlay.py"; exec(compile(sys.stdin.read(),__file__,"exec"))' < tests/test-snapshot-overlay.py
           python3 tests/test-container-restart.py "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}"
 
   publish:

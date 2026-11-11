@@ -1,5 +1,5 @@
-ARG RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev36
-ARG CORE_IMAGE=nkl/restreamer-core:0.3.0-dev36
+ARG RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev37
+ARG CORE_IMAGE=nkl/restreamer-core:0.3.0-dev37
 ARG FFMPEG_IMAGE=nkl/ffmpeg:9.0.1
 
 FROM ${RESTREAMER_UI_IMAGE} AS restreamer-ui
@@ -9,6 +9,9 @@ FROM ${FFMPEG_IMAGE}
 COPY --from=core /core /core
 COPY --from=restreamer-ui /ui/build /core/ui
 COPY bundle/run.sh /core/bin/run.sh
+COPY bundle/ffmpeg-preview.sh /core/bin/ffmpeg-preview.sh
+RUN mv /usr/bin/ffmpeg /usr/bin/ffmpeg-vortex-real && \
+    cp /core/bin/ffmpeg-preview.sh /usr/bin/ffmpeg && chmod 0755 /usr/bin/ffmpeg
 COPY bundle/overlay-updater.sh /core/bin/overlay-updater.sh
 COPY bundle/timelapse /core/bin/timelapse
 COPY bundle/livechasing-manager.py /core/bin/livechasing-manager.py
@@ -32,7 +35,7 @@ ENV CORE_CONFIGFILE=/core/config/config.json \
     OVERLAY_TEMPERATURE_DECIMALS=1 \
     OVERLAY_HUMIDITY_DECIMALS=0 \
     NKL_TIMELAPSE_ENABLE=true \
-    NKL_RELEASE_VERSION=0.3.0-dev36 \
+    NKL_RELEASE_VERSION=0.3.0-dev37 \
     NKL_RELEASE_REPOSITORY=https://github.com/glatzkopf94/vortex
 
 EXPOSE 8080/tcp 8181/tcp 1935/tcp 1936/tcp 6000/udp

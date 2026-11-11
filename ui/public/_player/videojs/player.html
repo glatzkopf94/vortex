@@ -205,7 +205,7 @@
 				</div>
 			</div>
 		</div>
-		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev36"></script>
+		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev37"></script>
 		<script src="player/videojs/dist/videojs-overlay.min.js?nkl=1.4-beta-dev21"></script>
 		{{#if airplay}}
 		<script src="player/videojs/dist/videojs-airplay.min.js?nkl=1.4-beta-dev21"></script>
@@ -741,65 +741,72 @@
 					32,
 				);
 				var responsiveLogos = [];
-				var updatePlayerOverlayLayout = function () {
-					var playerElement = player.el();
-					var width = playerElement.clientWidth;
-					var height = playerElement.clientHeight;
-					if (!width || !height) return;
-					var scale = clamp(
-						Math.min(width / 1280, height / 720),
-						0.25,
-						1,
-						1,
-					);
-					var gap = 18 * scale;
-					overlayRoot.style.setProperty(
-						'--lc-overlay-gap',
-						gap + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-safe-width',
-						gap * 2 + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-bottom',
-						Math.max(54, 82 * scale) + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-font-size',
-						overlayBaseFontSize * scale + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-padding-y',
-						8 * scale + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-padding-x',
-						12 * scale + 'px',
-					);
-					overlayRoot.style.setProperty(
-						'--lc-overlay-radius',
-						4 * scale + 'px',
-					);
-					responsiveLogos.forEach(function (logo) {
-						var ratio =
-							logo.image.naturalWidth && logo.image.naturalHeight
-								? logo.image.naturalWidth /
-									logo.image.naturalHeight
-								: 1;
-						var widthFromHeight = height * 0.45 * ratio;
-						logo.image.style.width =
-							Math.max(
-								1,
-								Math.min(
-									logo.baseWidth * scale,
-									width * 0.45,
-									widthFromHeight,
-								),
-							) + 'px';
-						logo.image.style.height = 'auto';
-					});
-				};
+                // BEGIN SNAPSHOT MATCHED LAYOUT
+                var overlayLabel = '';
+                var overlayCanvas = document.createElement('canvas');
+                overlayCanvas.style.display = 'block';
+                var fontFiles = {sans:'DejaVuSans.ttf','sans-bold':'DejaVuSans-Bold.ttf',serif:'DejaVuSerif.ttf',mono:'DejaVuSansMono.ttf'};
+                var fontKey = fontFiles[playerOverlay.font] ? playerOverlay.font : 'sans';
+                var overlayFont = 'VortexSnapshot-' + fontKey;
+                var overlayFontReady = false;
+                overlayText.textContent = '';
+                overlayText.appendChild(overlayCanvas);
+                overlayText.style.cssText = 'position:absolute;max-width:none;padding:0;border-radius:0;background:none;line-height:0;text-shadow:none;display:none;';
+                var renderSnapshotText = function (sw, sh, ratio) {
+                    if (!overlayFontReady || !overlayLabel) { overlayText.style.display='none'; return; }
+                    var size = Math.max(1, Math.round(overlayBaseFontSize * Math.min(sw/1280, sh/720)));
+                    var ctx = overlayCanvas.getContext('2d');
+                    ctx.font = size + 'px "' + overlayFont + '"';
+                    var lines = overlayLabel.split('\n');
+                    var metrics = lines.map(function(line) { return ctx.measureText(line); });
+                    var ascent = Math.ceil(Math.max.apply(null, metrics.map(function(m){return m.actualBoundingBoxAscent;})));
+                    var descent = Math.ceil(Math.max.apply(null, metrics.map(function(m){return m.actualBoundingBoxDescent;})));
+                    var step = Math.ceil(metrics[0].fontBoundingBoxAscent + metrics[0].fontBoundingBoxDescent) || size;
+                    var tw = Math.ceil(Math.max.apply(null, metrics.map(function(m){return m.width;})));
+                    var th = ascent + descent + (lines.length-1)*step;
+                    var pad = playerOverlay.box ? 16 : 0;
+                    overlayCanvas.width = Math.max(1,tw+2*pad);
+                    overlayCanvas.height = Math.max(1,th+2*pad);
+                    ctx.font = size + 'px "' + overlayFont + '"';
+                    if(playerOverlay.box) { ctx.fillStyle=rgba(playerOverlay.boxColor,playerOverlay.boxOpacity); ctx.fillRect(0,0,overlayCanvas.width,overlayCanvas.height); }
+                    ctx.fillStyle=colorValue(playerOverlay.fontColor,'#ffffff');
+                    lines.forEach(function(line,i){ctx.fillText(line,pad,pad+ascent+i*step);});
+                    overlayCanvas.style.width=overlayCanvas.width*ratio+'px';
+                    overlayCanvas.style.height=overlayCanvas.height*ratio+'px';
+                    var pos=overlayPositions.indexOf(playerOverlay.position)>=0 ? playerOverlay.position : 'bottom-left';
+                    var x=pos.endsWith('left') ? 24-pad : pos.endsWith('center') ? (sw-tw)/2-pad : sw-tw-24-pad;
+                    var y=pos.startsWith('top') ? 24-pad : sh-th-24-pad;
+                    overlayText.style.left=x*ratio+'px'; overlayText.style.top=y*ratio+'px';
+                    overlayText.style.right='auto';overlayText.style.bottom='auto';overlayText.style.transform='none';
+                    overlayText.style.display='block';
+                };
+                var updatePlayerOverlayLayout = function () {
+                    var el=player.el(), video=el.querySelector('video');
+                    var sw=video && video.videoWidth, sh=video && video.videoHeight;
+                    if(!sw || !sh || !el.clientWidth || !el.clientHeight) return;
+                    var ratio=Math.min(el.clientWidth/sw,el.clientHeight/sh);
+                    var width=sw*ratio,height=sh*ratio,scale=Math.min(sw/1280,sh/720);
+                    overlayRoot.style.inset='auto';
+                    overlayRoot.style.left=(el.clientWidth-width)/2+'px';
+                    overlayRoot.style.top=(el.clientHeight-height)/2+'px';
+                    overlayRoot.style.width=width+'px';overlayRoot.style.height=height+'px';
+                    overlayRoot.style.setProperty('--lc-overlay-gap',24*ratio+'px');
+                    overlayRoot.style.setProperty('--lc-overlay-bottom',24*ratio+'px');
+                    overlayRoot.style.setProperty('--lc-overlay-safe-width','0px');
+                    renderSnapshotText(sw,sh,ratio);
+                    responsiveLogos.forEach(function(logo){
+                        // logo.image.naturalWidth is used by the browser for its intrinsic aspect ratio.
+                        logo.image.style.width=Math.max(1,Math.round(Math.min(sw*.45,logo.baseWidth*scale)))*ratio+'px';
+                        logo.image.style.height = 'auto';
+                    });
+                };
+                if ('FontFace' in window) {
+                    var face = new FontFace(overlayFont,'url("player/videojs/fonts/'+fontFiles[fontKey]+'")');
+                    face.load().then(function(font){document.fonts.add(font);overlayFontReady=true;updatePlayerOverlayLayout();}).catch(function(){console.warn('Vortex overlay font unavailable');});
+                }
+                player.on('loadedmetadata',updatePlayerOverlayLayout);
+                player.on('resize',updatePlayerOverlayLayout);
+                // END SNAPSHOT MATCHED LAYOUT
 
                 // BEGIN DVR OVERLAY WINDOW
                 // Gate the whole layer, including logos/links. Never change the media stream.
@@ -853,25 +860,6 @@
                 });
                 updateOverlayDVRVisibility();
                 // END DVR OVERLAY WINDOW
-				place(overlayText, playerOverlay.position);
-				overlayText.style.fontFamily =
-					overlayFonts[playerOverlay.font] || overlayFonts.sans;
-				overlayText.style.fontWeight =
-					playerOverlay.font === 'sans-bold' ? '700' : '400';
-				overlayText.style.color = colorValue(
-					playerOverlay.fontColor,
-					'#ffffff',
-				);
-				if (playerOverlay.box) {
-					overlayText.style.padding =
-						'var(--lc-overlay-padding-y) var(--lc-overlay-padding-x)';
-					overlayText.style.borderRadius = 'var(--lc-overlay-radius)';
-					overlayText.style.backgroundColor = rgba(
-						playerOverlay.boxColor,
-						playerOverlay.boxOpacity,
-					);
-				}
-
 				var refreshOverlayText = function () {
 					var path = String(playerOverlay.text || '').replace(
 						/^\/+/,
@@ -893,12 +881,8 @@
 						})
 						.then(
 							function (text) {
-								overlayText.textContent = text.replace(
-									/\s+$/,
-									'',
-								);
-								overlayText.style.display =
-									overlayText.textContent ? 'block' : 'none';
+                                overlayLabel = text.replace(/\s+$/, '');
+                                updatePlayerOverlayLayout();
 								// The manager fetches JSON at the configured source interval.
 								// Poll only the tiny rendered text file more frequently so saved
 								// template and source changes appear within a few seconds.

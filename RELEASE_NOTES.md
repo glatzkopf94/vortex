@@ -1,8 +1,8 @@
-# Vortex 1.7 Beta / 0.3.0-dev36
+# Vortex 1.7 Beta / 0.3.0-dev37
 
-- **Player-Overlay flackert am Live-Rand nicht mehr:** Der sichere HLS-Sprungpunkt kann hinter der bereits laufenden Wiedergabe liegen. Die bisherige Prüfung blendete dann das Overlay zwischen Playlist-Aktualisierungen abwechselnd aus und ein. Diese falsche Obergrenze entfällt; die kanalweise 5-/10-Minuten-Grenze für ältere DVR-Aufnahmen bleibt aktiv, auch bei Pause und Tabwechsel.
-- **FTPS mit TLS-Sitzungswiederverwendung:** Geschützte Datenverbindungen übernehmen die TLS-Sitzung der Steuerverbindung. Behebt den Fehler 522 bei Servern, die Session-Reuse verlangen. Getestet mit TLS 1.2 und 1.3; der lokale Test47 wurde zusätzlich mit erfolgreichem großem Upload am betroffenen Server bestätigt.
-- **Aussagekräftige FTP-Fehler:** Bei 522 und 550 wird zusätzlich die begrenzte Serverantwort angezeigt. Das gespeicherte Passwort wird aus der Antwort entfernt, falls es darin vorkommt.
-- Zertifikatsprüfung, host-/portgebundene Fingerabdruckfreigabe und Prüfung der Datenverbindung bleiben erhalten. Kein zusätzliches Video-Encoding; eingebrannte Overlays und Zeitrafferbilder bleiben unverändert.
+- **Player-Overlay im Vorschaubild:** Aktivierte Player-Overlays werden bei der vorhandenen Einzelbild-Erzeugung in das JPEG eingebrannt. Text, Hintergrund und beide Logos verwenden die gespeicherten Einstellungen des jeweiligen Kanals. Der Livestream bleibt ohne zusätzliche Umcodierung.
+- **Einheitliches Overlay-Layout:** Live-Player verwenden dieselben DejaVu-Schriften und Bildkoordinaten wie Vorschaubilder und Zeitraffer. Schriftgröße, Randabstände und Hintergrund stimmen dadurch auch bei großer Wiedergabe überein. Schwarze Ränder, mobile Größen und Vollbild werden berücksichtigt.
+- **Bestehende Player werden aktualisiert:** Generierte Playerseiten und Schriftdateien werden beim Neustart übernommen; Kanäle müssen nicht neu angelegt werden.
+- Lokal mit Test49r2 und Test50 erfolgreich getestet und vom Nutzer bestätigt. Die zuvor behobenen FTPS-Probleme und das Flackern des DVR-Overlays bleiben korrigiert.
 
-Alle bisherigen Funktionen aus dev35 bleiben enthalten. Nach dem Update Oberfläche und Player mit Strg+F5 neu laden. Bereits generierte Playerseiten werden beim Start aktualisiert.
+Nach dem Update Oberfläche und eingebettete Player mit Strg+F5 neu laden. Für neue Vorschaubilder ein Aufnahmeintervall abwarten. Kanal-Einstellungen und vorhandene Aufnahmen bleiben erhalten.

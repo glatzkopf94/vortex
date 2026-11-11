@@ -205,7 +205,7 @@
 				</div>
 			</div>
 		</div>
-		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev35"></script>
+		<script src="player/videojs/dist/video.min.js?nkl=1.7-beta-dev36"></script>
 		<script src="player/videojs/dist/videojs-overlay.min.js?nkl=1.4-beta-dev21"></script>
 		{{#if airplay}}
 		<script src="player/videojs/dist/videojs-airplay.min.js?nkl=1.4-beta-dev21"></script>
@@ -823,8 +823,12 @@
                                     // Pausing/background tabs may stop playlist updates. Count elapsed
                                     // wall time too, so old frames cannot retain current measurements.
                                     var liveEdge = edge + Math.max(0, now - overlayEdgeObservedAt) / 1000;
+                                    // seekable.end() is a safe seek target with HLS live-edge
+                                    // padding, not the end of playable/buffered media. Playback
+                                    // may legitimately advance past it between playlist reloads.
+                                    // Only old playback should hide current overlay values.
                                     visible = position >= ranges.start(0) &&
-                                        position <= edge + 1 && liveEdge - position <= overlayWindowSeconds;
+                                        Math.max(0, liveEdge - position) <= overlayWindowSeconds;
                                 }
                             }
                         } catch (error) { visible = false; }

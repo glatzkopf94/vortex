@@ -62,7 +62,7 @@ class TransferTests(unittest.TestCase):
             transfer.configure(root,{'enabled':True,'host':'test.invalid','username':'user','password':''})
             self.assertEqual(transfer.read_config(root)['password'],'test-only')
             ftp=FTP()
-            with patch('transfer.ftplib.FTP_TLS',return_value=ftp) as factory:
+            with patch('transfer.ReusingFTP_TLS',return_value=ftp) as factory:
                 transfer.execute(root)
                 self.assertTrue(ftp.protected)
                 self.assertTrue(factory.call_args.kwargs['context'].check_hostname)
@@ -98,7 +98,7 @@ class TransferTests(unittest.TestCase):
                     (root/pid).mkdir();(root/pid/'export.mp4').write_bytes(b'video')
             transfer.configure(root,{'host':'test.invalid','username':'user','enabled':False})
             ftp=FTP()
-            with patch('transfer.ftplib.FTP_TLS',return_value=ftp):transfer.execute(root,plan={'origin':'manual','files':{'b':'Webcam_11.10.2026.mp4'}})
+            with patch('transfer.ReusingFTP_TLS',return_value=ftp):transfer.execute(root,plan={'origin':'manual','files':{'b':'Webcam_11.10.2026.mp4'}})
             self.assertEqual(set(ftp.files),{'Webcam_11.10.2026.mp4'})
             self.assertEqual(json.loads((root/'transfer-result.json').read_text())['origin'],'manual')
 
@@ -135,7 +135,7 @@ class TransferTests(unittest.TestCase):
                     (root/pid).mkdir();(root/pid/'export.mp4').write_bytes(b'video')
             transfer.configure(root,{'enabled':True,'host':'test.invalid','username':'user'})
             ftp=FTP()
-            with patch('transfer.ftplib.FTP_TLS',return_value=ftp):
+            with patch('transfer.ReusingFTP_TLS',return_value=ftp):
                 transfer.execute(root,'one')
                 self.assertEqual(set(ftp.files),{'one-a.mp4'})
                 transfer.execute(root,'two')
@@ -194,7 +194,7 @@ class TransferTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             config=transfer.validate(root,{'host':'test.invalid','port':40357,'username':'user','password':'secret'})
             ftp=FTP()
-            with patch('transfer.ftplib.FTP_TLS',return_value=ftp),patch.object(ftp,'connect') as connect:
+            with patch('transfer.ReusingFTP_TLS',return_value=ftp),patch.object(ftp,'connect') as connect:
                 result=transfer.test_connection(config)
                 connect.assert_called_once_with('test.invalid',40357)
             self.assertEqual(result['state'],'success')
@@ -207,7 +207,7 @@ class TransferTests(unittest.TestCase):
         import ssl
         config={**transfer.DEFAULT,'host':'test.invalid','username':'user','password':'secret'}
         for error,text in [(transfer.ftplib.error_perm('530 secret'),'Anmeldung'),(ssl.SSLCertVerificationError('secret'),'TLS-Zertifikat'),(ConnectionRefusedError('secret'),'abgelehnt')]:
-            with patch('transfer.ftplib.FTP_TLS',side_effect=error):result=transfer.test_connection(config)
+            with patch('transfer.ReusingFTP_TLS',side_effect=error):result=transfer.test_connection(config)
             self.assertEqual(result['state'],'error');self.assertIn(text,result['message']);self.assertNotIn('secret',result['message'])
 
     def test_rejects_ftp_command_injection(self):

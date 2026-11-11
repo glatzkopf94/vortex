@@ -394,7 +394,7 @@ export default function Footer({
 						<Stack className="footerLeft" direction="row" alignItems="center" spacing={0}>
 							<Logo className={classes.logo} />
 							<Typography className="footerVersion">
-								Vortex - dev-35 1.7 Beta ({version.arch})
+								Vortex - dev-36 1.7 Beta ({version.arch})
 							</Typography>
 						</Stack>
 						<Resources getResources={getResources} />

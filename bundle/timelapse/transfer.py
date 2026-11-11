@@ -78,7 +78,25 @@ def check_fingerprint(sock,expected):
         raise CertificatePinError('Das Serverzertifikat hat sich geändert.')
 
 
-class PinnedFTP_TLS(ftplib.FTP_TLS):
+class ReusingFTP_TLS(ftplib.FTP_TLS):
+    """Reuse the authenticated control TLS session for every protected data socket."""
+    def ntransfercmd(self,cmd,rest=None):
+        if not self._prot_p:
+            raise ssl.SSLError('Unverschlüsselte FTPS-Datenverbindung abgelehnt.')
+        connection=None
+        try:
+            # FTP_TLS.ntransfercmd would wrap without supplying the control session.
+            connection,size=ftplib.FTP.ntransfercmd(self,cmd,rest)
+            connection=self.context.wrap_socket(connection,server_hostname=self.host,
+                                                session=self.sock.session)
+            return connection,size
+        except BaseException:
+            if connection is not None:connection.close()
+            self.close()
+            raise
+
+
+class PinnedFTP_TLS(ReusingFTP_TLS):
     """Explicit, endpoint-scoped trust; check BEFORE USER/PASS and data IO."""
     def __init__(self,fingerprint,timeout):
         context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -114,7 +132,7 @@ def ftp_client(config,timeout):
         if trust.get('host')!=config['host'] or trust.get('port')!=config['port']:
             raise CertificatePinError('Zertifikatsfreigabe gehört zu einem anderen Server.')
         return PinnedFTP_TLS(trust['sha256'],timeout)
-    return ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=timeout)
+    return ReusingFTP_TLS(context=ssl.create_default_context(),timeout=timeout)
 
 
 def certificate_challenge(config,error):
@@ -250,14 +268,14 @@ def execute(root,channel=None,plan=None):
         save_json(record_path,updated)
         save_json(root/'transfer-result.json',{'state':'success','at':time.time(),'uploaded':uploaded,'origin':details['origin']})
     except Exception as error:
-        save_json(root/'transfer-result.json',{'state':'error','at':time.time(),**details,'message':friendly_error(error,details.get('phase','Übertragung'))+' Lokale Dateien bleiben erhalten. Eine unvollständige .part-Datei wird beim nächsten Versuch ersetzt.'})
+        save_json(root/'transfer-result.json',{'state':'error','at':time.time(),**details,'message':friendly_error(error,details.get('phase','Übertragung'),(config.get('password'),))+' Lokale Dateien bleiben erhalten. Eine unvollständige .part-Datei wird beim nächsten Versuch ersetzt.'})
     finally:
         if ftp:
             try:ftp.close()
             except Exception:pass
 
 
-def friendly_error(error,stage='Übertragung'):
+def friendly_error(error,stage='Übertragung',secrets=()):
     if isinstance(error,CertificatePinError):
         return 'Das Zertifikat stimmt nicht mit der gespeicherten Freigabe überein. Verbindung abgebrochen. Bitte Verbindung testen und Zertifikat erneut prüfen.'
     if isinstance(error,ssl.SSLCertVerificationError):
@@ -269,11 +287,17 @@ def friendly_error(error,stage='Übertragung'):
     code=re.match(r'^\d{3}',str(error))
     if code:
         n=code[0]
+        reply=str(error)
+        for secret in secrets:
+            if secret:reply=reply.replace(str(secret),'[entfernt]')
+        reply=' '.join(''.join(c if c.isprintable() else ' ' for c in reply).split())[:400]
+        detail=' Serverantwort: '+reply
+        if n=='522':return stage+': FTPS-Datenverbindung abgelehnt (FTP 522).'+detail
         if n=='530':return 'Anmeldung abgelehnt (FTP 530). Benutzername, Passwort und FTP-Zugriffsrecht prüfen.'
         if n in ('425','426'):return 'FTP-Datenverbindung fehlgeschlagen ('+n+'). Passive Datenverbindung/Firewall prüfen.'
-        if n in ('550','553'):return stage+' abgelehnt (FTP '+n+'). Zielordner und Lese-/Schreibrechte prüfen.'
+        if n in ('550','553'):return stage+' abgelehnt (FTP '+n+'). Zielordner und Lese-/Schreibrechte prüfen.'+detail
         if n=='552':return 'Zielspeicher voll oder Speicherlimit erreicht (FTP 552).'
-        return stage+' fehlgeschlagen (FTP '+n+').'
+        return stage+' fehlgeschlagen (FTP '+n+').'+detail
     return stage+' fehlgeschlagen ('+type(error).__name__+').'
 
 def test_connection(config):
@@ -298,7 +322,7 @@ def test_connection(config):
             if ftp:ftp.close()
             try:return certificate_challenge(config,error)
             except Exception:pass
-        return {'state':'error','message':friendly_error(error,stage),'entries':entries}
+        return {'state':'error','message':friendly_error(error,stage,(config.get('password'),)),'entries':entries}
     finally:
         if ftp:
             if temporary:

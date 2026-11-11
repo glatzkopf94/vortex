@@ -90,6 +90,7 @@ jobs:
           python3 tests/test-timelapse.py
           python3 tests/test-timelapse-transfer.py
           python3 tests/test-ftps-trust.py
+          python3 tests/test-ftps-session.py
           python3 tests/test-timelapse-combined.py
           python3 tests/test-timelapse-player-overlay.py
           node tests/test-timelapse-poster.cjs

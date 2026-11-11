@@ -32,14 +32,14 @@ class TrustTests(unittest.TestCase):
     def test_data_certificate_mismatch_closes_both_sockets(self):
         client=transfer.PinnedFTP_TLS('a'*64,8);client._prot_p=True
         connection=Mock();connection.getpeercert.return_value=b'different certificate'
-        with patch.object(transfer.ftplib.FTP_TLS,'ntransfercmd',return_value=(connection,10)),patch.object(client,'close') as close:
+        with patch.object(transfer.ReusingFTP_TLS,'ntransfercmd',return_value=(connection,10)),patch.object(client,'close') as close:
             with self.assertRaises(transfer.CertificatePinError):client.ntransfercmd('STOR movie.part')
             connection.close.assert_called_once();close.assert_called_once()
 
     def test_data_certificate_matches_and_plaintext_is_rejected(self):
         der=b'certificate';digest=hashlib.sha256(der).hexdigest()
         client=transfer.PinnedFTP_TLS(digest,8);connection=Mock();connection.getpeercert.return_value=der
-        with patch.object(transfer.ftplib.FTP_TLS,'ntransfercmd',return_value=(connection,10)):
+        with patch.object(transfer.ReusingFTP_TLS,'ntransfercmd',return_value=(connection,10)):
             client._prot_p=True
             self.assertEqual(client.ntransfercmd('STOR movie.part'),(connection,10))
             client._prot_p=False

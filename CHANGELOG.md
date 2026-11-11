@@ -1,3 +1,7 @@
+# 0.3.0-dev36 – Vortex 1.7 Beta
+
+Flackerndes Player-Overlay am Live-Rand korrigiert (sicherer HLS-Sprungpunkt ist keine Wiedergabeobergrenze). FTPS-Sitzungswiederverwendung für TLS 1.2/1.3 und genauere FTP-Fehlermeldungen; Zertifikatsprüfung bleibt aktiv.
+
 # 0.3.0-dev35 – Vortex 1.7 Beta
 
 Player-Overlay im DVR auf die letzten 5 oder 10 Minuten begrenzen, pro Kanal konfigurierbar. Automatisches Aus-/Einblenden beim Spulen, Pausieren und Tabwechsel; keine Änderung an Encoding oder Zeitrafferbildern. Bestehende Player werden migriert.

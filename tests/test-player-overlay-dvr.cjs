@@ -39,12 +39,26 @@ a.state.available=true;a.state.edge=100;a.state.position=94;a.emit('emptied');as
 a.emit('loadedmetadata');assert.equal(a.root.style.display,'block');
 a.state.position=NaN;a.tick();assert.equal(a.root.style.display,'none');
 a.state.position=-2;a.tick();assert.equal(a.root.style.display,'none');
-a.state.position=200;a.tick();assert.equal(a.root.style.display,'none');
+a.state.position=Infinity;a.tick();assert.equal(a.root.style.display,'none');
 a.emit('dispose');assert.equal(a.timers.size,0);assert.equal(Object.keys(a.documentEvents).length,0);
 const b=setup('10');b.state.position=6600;b.emit('seeking');assert.equal(b.root.style.display,'block');
 b.state.position=6599;b.emit('seeking');assert.equal(b.root.style.display,'none');
 for (const invalid of [null,0,-1,'bogus',Infinity,1000]) {
  const p=setup(invalid);p.state.position=6899;p.emit('seeking');assert.equal(p.root.style.display,'none');
 }
+// HLS seekable end is a safe seek target, behind already buffered playback.
+// Reproduce start-up playback crossing the old edge+1 guard between reloads.
+const startup=setup();
+for (let step=0;step<24;step++) {
+ startup.state.position=7200+step*.5;
+ startup.state.now=1000+step*500;
+ startup.state.edge=7200+Math.floor(step/4)*2;
+ startup.emit('timeupdate');
+ assert.equal(startup.root.style.display,'block','continuous live playback between playlist refreshes');
+ startup.tick();assert.equal(startup.root.style.display,'block');
+}
+startup.state.position=startup.state.edge-1800;startup.emit('seeking');assert.equal(startup.root.style.display,'none');
+startup.state.position=startup.state.edge+4;startup.emit('seeked');assert.equal(startup.root.style.display,'block');
+startup.state.now+=610000;startup.tick();assert.equal(startup.root.style.display,'none','paused frames still expire');
 const live=setup(5,false);live.state.available=false;live.tick();assert.equal(live.root.style.display,'block');
 console.log('DVR player overlay: boundaries, channel windows, seeking, pause, background, rollover, invalid state and cleanup passed');

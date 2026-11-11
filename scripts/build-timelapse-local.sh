@@ -7,6 +7,7 @@ docker compose version >/dev/null
 python3 tests/test-timelapse.py
 python3 tests/test-timelapse-transfer.py
 python3 tests/test-ftps-trust.py
+python3 tests/test-ftps-session.py
 python3 tests/test-timelapse-combined.py
 python3 tests/test-timelapse-player-overlay.py
 docker build -f core/Dockerfile -t nkl/restreamer-core:timelapse-local core

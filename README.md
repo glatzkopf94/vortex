@@ -1,4 +1,4 @@
-# Vortex 1.7 Beta / 0.3.0-dev35
+# Vortex 1.7 Beta / 0.3.0-dev36
 
 Player-Overlays werden im DVR auf die letzten 5 Minuten begrenzt (kanalweise auf 10 Minuten umstellbar); keine zusätzliche Transcodierung.
 
@@ -17,7 +17,7 @@ Saisonzeitraffer mit gemeinsamen Tagesparametern, vollständige HEVC-Codec-Erken
 und Player-Overlays als feste Bildbestandteile im Zeitraffer ohne Live-Transcoding.
 Alle Änderungen stehen im [Changelog](CHANGELOG.md). Anleitung: [Zeitraffer](TIMELAPSE.md).
 
-Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev35`
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev36`
 veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
 bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
 verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und

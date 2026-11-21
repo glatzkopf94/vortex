@@ -17,10 +17,7 @@ export default function Source({ onAbort = () => {}, onHelp = () => {}, onAdvanc
 			<Grid container spacing={2}>
 				<Grid item xs={12}>
 					<Typography>
-						<Trans>
-							Select whether you pull the stream from a <strong>network source</strong> (such as a network camera) or the{' '}
-							<strong>internal RTMP server</strong> (e.g., OBS streams to the Vortex).
-						</Trans>
+						<Trans>Select the video source for this channel.</Trans>
 					</Typography>
 				</Grid>
 				<Grid item xs={12}>

@@ -1,0 +1,301 @@
+diff --git a/crates/core/src/bc_protocol/connection/udpsource.rs b/crates/core/src/bc_protocol/connection/udpsource.rs
+index 3a9fc77..7f31895 100644
+--- a/crates/core/src/bc_protocol/connection/udpsource.rs
++++ b/crates/core/src/bc_protocol/connection/udpsource.rs
+@@ -218,6 +218,52 @@ enum State {
+     YieldNow, // Used to ensure we rest between polling packets so as to not starve the runtime
+ }
+ 
++enum AckProfile {
++    Standard,
++    Fixed810,
++    Dynamic { since: Instant, bytes: u32, reported: u32 },
++}
++
++impl AckProfile {
++    fn dynamic(now: Instant) -> Self {
++        Self::Dynamic { since: now, bytes: 0, reported: 0 }
++    }
++
++    fn observe(&mut self, now: Instant, payload_bytes: u32) {
++        if let Self::Dynamic { since, bytes, reported } = self {
++            if now.duration_since(*since) >= Duration::from_secs(1) {
++                *reported = *bytes;
++                *bytes = 0;
++                *since = now;
++            }
++            *bytes = bytes.saturating_add(payload_bytes);
++        }
++    }
++
++    fn value(&self, standard: u32) -> u32 {
++        match self {
++            Self::Standard => standard,
++            Self::Fixed810 => 446_920,
++            Self::Dynamic { reported, .. } => *reported,
++        }
++    }
++}
++
++#[test]
++fn dynamic_ack_reports_payload_bytes_per_window() {
++    let start = Instant::now();
++    let mut profile = AckProfile::dynamic(start);
++    profile.observe(start, 1200);
++    profile.observe(start + Duration::from_millis(999), 300);
++    assert_eq!(profile.value(77), 0);
++    profile.observe(start + Duration::from_millis(1020), 250);
++    assert_eq!(profile.value(77), 1500);
++    profile.observe(start + Duration::from_millis(2020), 0);
++    assert_eq!(profile.value(77), 250);
++    profile.observe(start + Duration::from_millis(3020), 0);
++    assert_eq!(profile.value(77), 0);
++}
++
+ #[derive(Default)]
+ struct AckLatency {
+     current_values: Vec<u32>,
+@@ -309,6 +355,7 @@ struct UdpPayloadInner {
+     /// This `resend_interval` controls how ofen we do this
+     resend_interval: Interval,
+     ack_latency: AckLatency,
++    ack_profile: AckProfile,
+     cancel: CancellationToken,
+     set: JoinSet<Result<()>>,
+ }
+@@ -473,6 +520,11 @@ impl UdpPayloadInner {
+             recieved: Default::default(),
+             resend_interval: interval(Duration::from_millis(500)), // Offical Client does resend every 500ms
+             ack_latency: Default::default(),
++            ack_profile: match std::env::var("VORTEX_ACK_PROFILE").as_deref() {
++                Ok("rlc810wa") => AckProfile::Fixed810,
++                Ok("dynamic") => AckProfile::dynamic(Instant::now()),
++                _ => AckProfile::Standard,
++            },
+             cancel,
+             set,
+         }
+@@ -481,6 +533,7 @@ impl UdpPayloadInner {
+         let camera_addr = self.camera_addr;
+         tokio::select! {
+             _ = self.resend_interval.tick() => {
++                self.ack_profile.observe(Instant::now(), 0);
+                 log::trace!("Resend Tick");
+                 for (_, resend) in self.sent.iter() {
+                     self.socket_in.feed(BcUdp::Data(resend.clone())).await?;
+@@ -535,6 +588,7 @@ impl UdpPayloadInner {
+                         },
+                         BcUdp::Data(data)  => {
+                             if data.connection_id == self.client_id {
++                                self.ack_profile.observe(Instant::now(), data.payload.len() as u32);
+                                 let packet_id = data.packet_id;
+                                 if packet_id >= self.packets_want {
+                                     // error!("packets_want: {}", this.packets_want);
+@@ -591,11 +645,15 @@ impl UdpPayloadInner {
+                 connection_id: self.camera_id,
+                 packet_id: first_missing - 1, // Last we actually have is first_missing - 1
+                 group_id: 0,
+-                maybe_latency: self.ack_latency.get_value(),
++                maybe_latency: self.ack_profile.value(self.ack_latency.get_value()),
+                 payload: missing_ids,
+             }
+         } else {
+-            UdpAck::empty(self.camera_id)
++            let mut ack = UdpAck::empty(self.camera_id);
++            if matches!(self.ack_profile, AckProfile::Dynamic { .. }) {
++                ack.maybe_latency = self.ack_profile.value(0);
++            }
++            ack
+         }
+     }
+ 
+diff --git a/src/rtsp/factory.rs b/src/rtsp/factory.rs
+index 9ba058e..43362e4 100644
+--- a/src/rtsp/factory.rs
++++ b/src/rtsp/factory.rs
+@@ -1,5 +1,5 @@
+ use gstreamer::ClockTime;
+-use std::{collections::HashMap, time::Duration};
++use std::time::Duration;
+ 
+ use anyhow::{anyhow, Context, Result};
+ use gstreamer::{prelude::*, Bin, Caps, Element, ElementFactory, FlowError, GhostPad};
+@@ -203,6 +203,9 @@ pub(super) async fn make_factory(
+                                 AnyResult::Ok(Some(src))
+                             }
+                             None => {
++                                if !config.use_splash {
++                                    return Err(anyhow!("Waiting for camera video"));
++                                }
+                                 build_unknown(&element, &config.splash_pattern.to_string())?;
+                                 AnyResult::Ok(None)
+                             }
+@@ -243,15 +246,13 @@ pub(super) async fn make_factory(
+                         // Run blocking code on a seperate thread
+                         // This is not an async thread
+                         std::thread::spawn(move || {
+-                            let mut aud_ts = 0u32;
+-                            let mut vid_ts = 0u32;
+-                            let mut pools = Default::default();
++                            let mut aud_ts = 0u64;
++                            let mut vid_ts = 0u64;
+ 
+                             log::trace!("{name}::{stream}: Sending buffered frames");
+                             for buffered in buffer.drain(..) {
+                                 send_to_sources(
+                                     buffered,
+-                                    &mut pools,
+                                     &vid_src,
+                                     &aud_src,
+                                     &mut vid_ts,
+@@ -264,7 +265,6 @@ pub(super) async fn make_factory(
+                             while let Some(data) = media_rx.blocking_recv() {
+                                 let r = send_to_sources(
+                                     data,
+-                                    &mut pools,
+                                     &vid_src,
+                                     &aud_src,
+                                     &mut vid_ts,
+@@ -301,11 +301,10 @@ pub(super) async fn make_factory(
+ 
+ fn send_to_sources(
+     data: BcMedia,
+-    pools: &mut HashMap<usize, gstreamer::BufferPool>,
+     vid_src: &Option<AppSrc>,
+     aud_src: &Option<AppSrc>,
+-    vid_ts: &mut u32,
+-    aud_ts: &mut u32,
++    vid_ts: &mut u64,
++    aud_ts: &mut u64,
+     stream_config: &StreamConfig,
+ ) -> AnyResult<()> {
+     // Update TS
+@@ -313,39 +312,37 @@ fn send_to_sources(
+         BcMedia::Aac(aac) => {
+             let duration = aac.duration().expect("Could not calculate AAC duration");
+             if let Some(aud_src) = aud_src.as_ref() {
+-                log::debug!("Sending AAC: {:?}", Duration::from_micros(*aud_ts as u64));
++                log::debug!("Sending AAC: {:?}", Duration::from_micros(*aud_ts));
+                 send_to_appsrc(
+                     aud_src,
+                     aac.data,
+-                    Duration::from_micros(*aud_ts as u64),
+-                    pools,
++                    Duration::from_micros(*aud_ts),
+                 )?;
+             }
+-            *aud_ts += duration;
++            *aud_ts += u64::from(duration);
+         }
+         BcMedia::Adpcm(adpcm) => {
+             let duration = adpcm
+                 .duration()
+                 .expect("Could not calculate ADPCM duration");
+             if let Some(aud_src) = aud_src.as_ref() {
+-                log::trace!("Sending ADPCM: {:?}", Duration::from_micros(*aud_ts as u64));
++                log::trace!("Sending ADPCM: {:?}", Duration::from_micros(*aud_ts));
+                 send_to_appsrc(
+                     aud_src,
+                     adpcm.data,
+-                    Duration::from_micros(*aud_ts as u64),
+-                    pools,
++                    Duration::from_micros(*aud_ts),
+                 )?;
+             }
+-            *aud_ts += duration;
++            *aud_ts += u64::from(duration);
+         }
+         BcMedia::Iframe(BcMediaIframe { data, .. })
+         | BcMedia::Pframe(BcMediaPframe { data, .. }) => {
+             if let Some(vid_src) = vid_src.as_ref() {
+-                log::trace!("Sending VID: {:?}", Duration::from_micros(*vid_ts as u64));
+-                send_to_appsrc(vid_src, data, Duration::from_micros(*vid_ts as u64), pools)?;
++                log::trace!("Sending VID: {:?}", Duration::from_micros(*vid_ts));
++                send_to_appsrc(vid_src, data, Duration::from_micros(*vid_ts))?;
+             }
+             const MICROSECONDS: u32 = 1000000;
+-            *vid_ts += MICROSECONDS / stream_config.fps;
++            *vid_ts += u64::from(MICROSECONDS / stream_config.fps);
+         }
+         _ => {}
+     }
+@@ -356,7 +353,6 @@ fn send_to_appsrc(
+     appsrc: &AppSrc,
+     data: Vec<u8>,
+     mut ts: Duration,
+-    pools: &mut HashMap<usize, gstreamer::BufferPool>,
+ ) -> AnyResult<()> {
+     check_live(appsrc)?; // Stop if appsrc is dropped
+ 
+@@ -380,36 +376,11 @@ fn send_to_appsrc(
+             return Ok(());
+         }
+     }
+-    let buf = {
+-        let msg_size = data.len();
+-
+-        // Get or create a pool of this len
+-        let pool = pools.entry(msg_size).or_insert_with_key(|size| {
+-            let pool = gstreamer::BufferPool::new();
+-            let mut pool_config = pool.config();
+-            // Set a max buffers to ensure we don't grow in memory endlessly
+-            pool_config.set_params(None, (*size) as u32, 8, 32);
+-            pool.set_config(pool_config).unwrap();
+-            pool.set_active(true).unwrap();
+-            pool
+-        });
+-
+-        // Get a buffer from the pool and then copy in the data
+-        let gst_buf = {
+-            let mut new_buf = pool.acquire_buffer(None).unwrap();
+-            let gst_buf_mut = new_buf.get_mut().unwrap();
+-            let time = ClockTime::from_useconds(ts.as_micros() as u64);
+-            gst_buf_mut.set_dts(time);
+-            gst_buf_mut.set_pts(time);
+-            let mut gst_buf_data = gst_buf_mut.map_writable().unwrap();
+-            gst_buf_data.copy_from_slice(data.as_slice());
+-            drop(gst_buf_data);
+-            new_buf
+-        };
+-
+-        // Return the new buffer with the data
+-        gst_buf
+-    };
++    let mut buf = gstreamer::Buffer::from_mut_slice(data);
++    let timestamp = ClockTime::from_useconds(ts.as_micros() as u64);
++    let writable = buf.get_mut().expect("new buffer is exclusively owned");
++    writable.set_dts(timestamp);
++    writable.set_pts(timestamp);
+ 
+     // Push buffer into the appsrc
+     match appsrc.push_buffer(buf) {
+@@ -432,16 +403,6 @@ fn send_to_appsrc(
+         }
+         Err(e) => Err(anyhow!("Error in streaming: {e:?}")),
+     }?;
+-    // Check if we need to pause
+-    if appsrc.current_level_bytes() >= appsrc.max_bytes() * 2 / 3
+-        && matches!(appsrc.current_state(), gstreamer::State::Paused)
+-    {
+-        appsrc.set_state(gstreamer::State::Playing).unwrap();
+-    } else if appsrc.current_level_bytes() <= appsrc.max_bytes() / 3
+-        && matches!(appsrc.current_state(), gstreamer::State::Playing)
+-    {
+-        appsrc.set_state(gstreamer::State::Paused).unwrap();
+-    }
+     Ok(())
+ }
+ fn check_live(app: &AppSrc) -> Result<()> {
+diff --git a/src/rtsp/gst/factory.rs b/src/rtsp/gst/factory.rs
+index c7a88c4..accb632 100644
+--- a/src/rtsp/gst/factory.rs
++++ b/src/rtsp/gst/factory.rs
+@@ -39,7 +39,7 @@ impl NeoMediaFactory {
+         factory.set_eos_shutdown(false);
+         factory.set_stop_on_disconnect(false);
+         // factory.set_publish_clock_mode(gstreamer_rtsp_server::RTSPPublishClockMode::Clock);
+-        factory.set_suspend_mode(gstreamer_rtsp_server::RTSPSuspendMode::Reset);
++        factory.set_suspend_mode(gstreamer_rtsp_server::RTSPSuspendMode::None);
+         factory.set_launch("videotestsrc pattern=\"snow\" ! video/x-raw,width=896,height=512,framerate=25/1 ! textoverlay name=\"inittextoverlay\" text=\"Stream not Ready\" valignment=top halignment=left font-desc=\"Sans, 32\" ! jpegenc ! rtpjpegpay name=pay0");
+         factory.set_transport_mode(RTSPTransportMode::PLAY);
+         factory

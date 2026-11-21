@@ -32,6 +32,11 @@ const assert=require('node:assert/strict');
    const count=await page.locator('.lc-dvr-tick-label').count();assert.ok(count>0&&count<=Math.floor(width/70));
    await page.evaluate(()=>cleanup());assert.equal(await page.locator('.lc-dvr-markers').count(),0);
    await page.evaluate(()=>{nklTimelineMarkers(p,{markers:[]});});assert.equal(await page.locator('.lc-dvr-markers').count(),0);
+   for(const label of ['19.11.2026','KW 53']){
+    await page.evaluate(label=>{window.cleanup=nklTimelineMarkers(p,{scale:'calendar',duration:2,markers:[{position:0,label}]});},label);
+    assert.deepEqual(await page.locator('.lc-dvr-tick-label').allTextContents(),[label]);
+    await page.evaluate(()=>cleanup());
+   }
    await page.evaluate(()=>p.dispose());
   }
   console.log('PASS: DVR PROGRAM-DATE-TIME marks, adaptive daily labels at 360/640px, empty season timeline, cleanup.');

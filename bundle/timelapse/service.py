@@ -838,24 +838,40 @@ class Service:
                     self.render_job=self.render_pool.submit(self.render_quality,p);break
 
     def timeline(self,p):
-        if not p['day']: return {'markers':[]}
         s=json.loads(p['settings'])
         segments=self.rows('SELECT number,frames FROM segments WHERE project=? ORDER BY number',(p['id'],))
         total=sum(x['frames'] for x in segments)
         saved={x['segment']:json.loads(x['slots']) for x in self.rows('SELECT * FROM timeline WHERE project=?',(p['id'],))}
         old=self.rows("SELECT slot FROM attempts WHERE project=? AND status='done' AND slot NOT IN (SELECT slot FROM frames WHERE project=?) ORDER BY slot",(p['id'],p['id']))
         fallback=[x['slot'] for x in old] if len(old)==total else []
+        zone=ZoneInfo(s['timezone'])
+        days=[]
         markers=[]; offset=0; previous=None
         for segment in segments:
             slots=saved.get(segment['number'],fallback[offset:offset+segment['frames']])
             if len(slots)==segment['frames']:
                 for index,slot in enumerate(slots):
-                    stamp=datetime.fromtimestamp(slot,ZoneInfo(s['timezone']))
+                    stamp=datetime.fromtimestamp(slot,zone)
+                    if not p['day']:
+                        day=stamp.date()
+                        if not days or day!=days[-1][0]:
+                            days.append((day,(offset+index)/s['fps']))
+                        continue
                     bucket=stamp.strftime('%Y-%m-%d %H %z')
                     if bucket!=previous:
                         markers.append({'position':(offset+index)/s['fps'],'label':stamp.strftime('%H:%M'),'hour':stamp.hour})
                         previous=bucket
             offset+=segment['frames']
+        if days:
+            weekly=(days[-1][0]-days[0][0]).days >= 6
+            for day,position in days:
+                year,week,_=day.isocalendar()
+                key=(year,week) if weekly else day
+                if key!=previous:
+                    label=f'KW {week:02d}' if weekly else day.strftime('%d.%m.%Y')
+                    markers.append({'label':label,'position':position})
+                    previous=key
+            return {'scale':'calendar','markers':markers,'duration':total/s['fps']}
         return {'markers':markers,'duration':total/s['fps'] if total else 0}
 
     def status(self,channel=None,public=False):

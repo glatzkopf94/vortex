@@ -271,13 +271,13 @@ class TimelapseTests(unittest.TestCase):
             self.service.render_job.result()
             self.assertEqual(render.call_count,1)
 
-    def test_daily_timeline_retains_actual_frame_times_and_excludes_season(self):
+    def test_daily_timeline_retains_actual_frame_times_and_labels_season(self):
         pid=self.project(width=640)
         slots=[int(datetime(2026,10,6,h,m,tzinfo=timezone.utc).timestamp()) for h,m in [(6,0),(7,0),(10,15)]]
         for slot in slots:self.frame(pid,slot)
         p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
         self.service.render(p)
-        self.assertEqual(self.service.timeline(p),{'markers':[]})
+        self.assertEqual(self.service.timeline(p)['markers'],[{'position':0,'label':'06.10.2026'}])
         self.service.write('UPDATE projects SET day=? WHERE id=?',('2026-10-06',pid))
         p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
         data=self.service.timeline(p)
@@ -287,6 +287,21 @@ class TimelapseTests(unittest.TestCase):
         self.assertEqual(self.service.timeline(p)['markers'],[])
         for slot in slots:self.service.write("INSERT INTO attempts VALUES(?,?,'done')",(pid,slot))
         self.assertEqual(self.service.timeline(p),data)
+
+    def test_season_calendar_switches_to_iso_weeks_across_new_year(self):
+        pid=self.project(fps=12)
+        p=self.service.rows('SELECT * FROM projects WHERE id=?',(pid,))[0]
+        # Local midnight in Berlin: the second slot belongs to the following day.
+        slots=[int(datetime(2026,12,30,22,55,tzinfo=timezone.utc).timestamp()),
+               int(datetime(2026,12,30,23,5,tzinfo=timezone.utc).timestamp())]
+        def segment(n,values):
+            self.service.write('INSERT INTO segments VALUES(?,?,?,?,?,?)',(pid,n,'dummy',len(values),0,0))
+            self.service.write('INSERT INTO timeline VALUES(?,?,?)',(pid,n,json.dumps(values)))
+        segment(0,slots)
+        self.assertEqual([m['label'] for m in self.service.timeline(p)['markers']],['30.12.2026','31.12.2026'])
+        segment(1,[int(datetime(2027,1,d,12,tzinfo=timezone.utc).timestamp()) for d in (1,2,3,4,5)])
+        self.assertEqual(self.service.timeline(p)['markers'],[
+            {'position':0,'label':'KW 53'}, {'position':5/12,'label':'KW 01'}])
 
     def test_free_interval_and_bulk_delete_separation(self):
         for value in [30,31,45,90,86400]:self.assertEqual(settings({'interval':value})['interval'],value)

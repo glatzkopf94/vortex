@@ -590,6 +590,7 @@ class Restreamer {
 			filter: [],
 			sources: {
 				network: [],
+				reolink: [],
 				virtualaudio: [],
 				virtualvideo: [],
 				videoloop: [],
@@ -2372,7 +2373,11 @@ class Restreamer {
 			});
 		}
 
-		await this._deleteProcess(id);
+		const address = inputs[0]?.address;
+        const uidCheck = this.uidProbeTokens?.get(address);
+        this.uidProbeTokens?.delete(address);
+
+        await this._deleteProcess(id);
 
 		let [val, err] = await this._call(this.api.ProcessAdd, config);
 		if (err !== null) {
@@ -2382,7 +2387,18 @@ class Restreamer {
 		[val, err] = await this._call(this.api.ProcessProbe, id);
 		await this._deleteProcess(id);
 
-		return [val, err];
+		if (uidCheck && (err || !val?.streams?.some((stream) => stream.type === 'video'))) {
+            const [recovery, recoveryError] = await this._call(this.api._call, 'POST', '/v3/reolink/status', {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...uidCheck, core_failed: true }),
+            });
+            if (!recoveryError && recovery?.message) {
+                if (err) err = { ...err, message: err.message + ' · ' + recovery.message };
+                else val = { ...val, streams: val?.streams || [], log: [...(val?.log || []), recovery.message] };
+            }
+        }
+
+        return [val, err];
 	}
 
 	// Probe the ingest stream

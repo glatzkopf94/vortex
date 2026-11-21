@@ -22,6 +22,7 @@ import StreamSelect from './StreamSelect';
 import FilterSelect from '../../misc/FilterSelect';
 
 export default function Profile({
+	restreamer,
 	skills = {},
 	sources = [],
 	profile = {},
@@ -223,6 +224,7 @@ export default function Profile({
 				},
 			});
 		}
+		return status;
 	};
 
 	const handleRefresh = async () => {
@@ -509,6 +511,7 @@ export default function Profile({
 						</Grid>
 						<Grid item xs={12}>
 							<SourceSelect
+								restreamer={restreamer}
 								type="video"
 								skills={skills}
 								source={$sources.video}
@@ -635,6 +638,7 @@ export default function Profile({
 						</Grid>
 						<Grid item xs={12}>
 							<SourceSelect
+								restreamer={restreamer}
 								type="audio"
 								skills={skills}
 								source={$sources.audio}

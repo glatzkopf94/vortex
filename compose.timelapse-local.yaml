@@ -15,11 +15,27 @@ services:
       NKL_TIMELAPSE_QUOTA_BYTES: "21474836480"
       NKL_TIMELAPSE_RESERVE_BYTES: "2147483648"
       CORE_STORAGE_DISK_CACHE_TYPES_BLOCK: ".m3u8 .mpd .txt .html .js"
+    networks: [default, uid-media]
+    depends_on:
+      - reolink
     volumes:
+      - reolink-control:/run/vortex-reolink:ro
       - config:/core/config
       - data:/core/data
       - timelapse:/core/timelapse
+  reolink:
+    build: ./receiver
+    restart: unless-stopped
+    networks: [uid-media]
+    init: true
+    volumes:
+      - reolink-state:/var/lib/vortex-reolink
+      - reolink-control:/run/vortex-reolink
 volumes:
+  reolink-state:
+  reolink-control:
   config:
   data:
   timelapse:
+networks:
+  uid-media:

@@ -101,7 +101,7 @@ const restreamer = {
 				layout: 'stereo',
 				channels: 2,
 			});
-		} else if (inputs[0].address === '{srt,name=external.stream,mode=request}') {
+		} else if (inputs[0].address === '{srt,name=external.stream,mode=request,latency=20000}') {
 			streams.push({
 				url: inputs[0].address,
 				format: 'srt',
@@ -312,6 +312,7 @@ const restreamer = {
 	},
 	SetIngestMetadata: (_channelid, data) => {},
 	UpsertIngestSnapshot: (_channelid, control) => {},
+	UpsertIngestPreview: () => [null, null],
 	UpdatePlayer: (_channelid) => {},
 	UpdatePlayersite: () => {},
 };
@@ -321,7 +322,7 @@ test('wizard', async () => {
 		render(<Wizard restreamer={restreamer} />, {}, '/wizard/test', '/wizard/:channelid');
 	});
 
-	expect(await screen.findByText(/Select whether you pull the stream from a/)).toBeInTheDocument();
+	expect(await screen.findByText(/Select the video source for this channel/)).toBeInTheDocument();
 
 	expect(screen.queryByText('Network source')).toBeInTheDocument();
 	expect(screen.queryByText('RTMP server')).toBeInTheDocument();
@@ -909,4 +910,30 @@ test('wizard: license', async () => {
 	await act(async () => {
 		fireEvent.click(button);
 	});
+});
+
+test('UID tile opens camera setup and requires a successful media check', async () => {
+    const saved = {id:'a'.repeat(32),name:'Werkstatt',uid:'TESTUID',username:'viewer',port:18554,profile:'auto'};
+    const call = jest.fn(async (_fn, _method, path) => {
+        if (path.endsWith('/cameras')) return [{cameras:[]}, null];
+        if (path.endsWith('/save')) return [saved, null];
+        return [{status:'ok',message:'2560 × 1440 · H264'}, null];
+    });
+    await act(async () => {
+        render(<Wizard restreamer={{...restreamer, api:{}, _call:call}} />, {}, '/wizard/test', '/wizard/:channelid');
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button',{name:'Reolink-Kamera per UID'})); });
+    expect(screen.getByRole('button',{name:'Next'})).toBeDisabled();
+    for (const [label,value] of Object.entries({Kameraname:'Werkstatt', UID:'TESTUID', Kamerabenutzer:'viewer', Kamerapasswort:'mock-secret'})) {
+        fireEvent.change(screen.getByLabelText(label),{target:{value}});
+    }
+    await act(async () => { fireEvent.click(screen.getByRole('button',{name:'Quelle prüfen'})); });
+    expect(screen.getByRole('status')).toHaveTextContent('2560 × 1440');
+    expect(screen.getByRole('button',{name:'Next'})).toBeEnabled();
+    expect(screen.getByLabelText('UID')).toHaveValue('TESTUID');
+    expect(screen.getByLabelText('Kamerabenutzer')).toHaveValue('viewer');
+    expect(screen.getByLabelText('Kamerapasswort')).toHaveValue('');
+    expect(screen.getByLabelText('Kamerapasswort')).toHaveAttribute('placeholder','••••••••');
+    const probe = call.mock.calls.find(args => args[2].endsWith('/probe'));
+    expect(JSON.parse(probe[3].body)).toEqual({id:saved.id,port:saved.port,stream:'main'});
 });

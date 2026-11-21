@@ -47,13 +47,16 @@ window.nklTimelineMarkers = function (player, data) {
     if(!duration||!width)return;
     const capacity=Math.max(1,Math.floor(width/70));
     const hours=[1,2,3,4,6,12,24];
-    const step=hours.find(h=>data.markers.filter(m=>m.hour%h===0).length<=capacity)||24;
+    const calendar=data.scale==='calendar';
+    const step=calendar ? 1 : hours.find(h=>data.markers.filter(m=>m.hour%h===0).length<=capacity)||24;
     const fragment=document.createDocumentFragment();let last=-100;
     data.markers.forEach(m=>{
       const x=m.position/duration*width;
-      if(m.hour%step || x<25 || x>width-25 || x-last<65)return;
+      // Keep ticks at their frame position. Shift only calendar labels at the edges.
+      const center=calendar ? Math.max(30,Math.min(width-30,x)) : x;
+      if((!calendar && (m.hour%step || x<25 || x>width-25)) || x<0 || x>width || center-last<65)return;
       const tick=document.createElement('span');tick.className='lc-dvr-tick';tick.style.left=(m.position/duration*100)+'%';
-      const label=document.createElement('span');label.className='lc-dvr-tick-label';label.textContent=m.label;tick.appendChild(label);fragment.appendChild(tick);last=x;
+      const label=document.createElement('span');label.className='lc-dvr-tick-label';if(calendar)label.style.left=(1+center-x)+'px';label.textContent=m.label;tick.appendChild(label);fragment.appendChild(tick);last=center;
     });
     layer.replaceChildren(fragment);
   }

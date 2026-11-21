@@ -1,6 +1,7 @@
 import * as ALSA from './ALSA';
 import * as AudioLoop from './AudioLoop';
 import * as AVFoundation from './AVFoundation';
+import * as Reolink from './Reolink';
 import * as Network from './Network';
 import * as NoAudio from './NoAudio';
 import * as Raspicam from './Raspicam';
@@ -43,6 +44,7 @@ class Registry {
 const registry = new Registry();
 
 registry.Register(Network);
+registry.Register(Reolink);
 registry.Register(ALSA);
 registry.Register(AVFoundation);
 registry.Register(Video4Linux);

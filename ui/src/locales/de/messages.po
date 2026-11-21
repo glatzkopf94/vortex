@@ -4179,3 +4179,6 @@ msgstr "{0} installieren"
 #: src/views/Settings.js
 msgid "The current configuration and DVR data are retained. A configuration backup is created before the NKL container is replaced. Active streams are interrupted briefly."
 msgstr "Die aktuelle Konfiguration und DVR-Daten bleiben erhalten. Vor dem Austausch des NKL-Containers wird eine Konfigurationssicherung erstellt. Aktive Streams werden kurz unterbrochen."
+
+msgid "Select the video source for this channel."
+msgstr "Wählen Sie die Videoquelle für diesen Kanal."

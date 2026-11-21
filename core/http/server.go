@@ -541,6 +541,12 @@ func (s *server) setRoutes() {
 
 	v3.Use(gzipMiddleware)
 
+	v3.GET("/reolink/cameras", reolinkEndpoint(reolinkSocket, "/cameras"))
+	if !s.readOnly {
+		for _, path := range []string{"/save", "/probe", "/status"} {
+			v3.POST("/reolink"+path, reolinkEndpoint(reolinkSocket, path))
+		}
+	}
 	v3.GET("/timelapse/*", timelapseProxy(false))
 	v3.HEAD("/timelapse/*", timelapseProxy(false))
 	if !s.readOnly {

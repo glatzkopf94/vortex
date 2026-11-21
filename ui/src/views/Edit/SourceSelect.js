@@ -46,6 +46,7 @@ function reducer(settings, data) {
 }
 
 export default function SourceSelect({
+	restreamer,
 	type = '',
 	skills = {},
 	source = {},
@@ -83,7 +84,7 @@ export default function SourceSelect({
 	};
 
 	const handleProbe = async (settings, inputs) => {
-		await onProbe(type, $source, settings, inputs);
+		return await onProbe(type, $source, settings, inputs);
 	};
 
 	const handleChange = (source) => (settings) => {
@@ -104,6 +105,7 @@ export default function SourceSelect({
 		if (SemverSatisfies(skills.ffmpeg.version, s.ffversion)) {
 			sourceControl = (
 				<Component
+					restreamer={restreamer}
 					knownDevices={skills.sources[$source]}
 					skills={skills}
 					config={config[$source]}

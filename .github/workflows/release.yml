@@ -114,6 +114,15 @@ jobs:
         run: |
           echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
 
+      - name: UID-Empfänger nativ bauen und prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="${{ steps.release.outputs.image }}:receiver-${{ steps.release.outputs.release_version }}-${{ matrix.arch }}"
+          python3 -m unittest discover -s receiver
+          docker build --pull -t "$image" receiver
+          docker push "$image"
+
       - name: FFmpeg nativ bauen
         run: docker build --pull --tag nkl/ffmpeg:9.0.1 ffmpeg
 
@@ -145,6 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           arch="${{ matrix.arch }}"
+          export VORTEX_RECEIVER_IMAGE="${{ steps.release.outputs.image }}:receiver-${{ steps.release.outputs.release_version }}-${{ matrix.arch }}"
           config_volume="nkl-release-smoke-${arch}-config"
           data_volume="nkl-release-smoke-${arch}-data"
           cleanup() {
@@ -171,6 +181,7 @@ jobs:
             fi
             sleep 2
           done
+          docker compose exec -T restreamer-nkl python3 -c 'import socket,http.client;s=socket.socket(socket.AF_UNIX);s.settimeout(5);s.connect("/run/vortex-reolink/control.sock");s.sendall(b"GET /cameras HTTP/1.0\r\n\r\n");r=http.client.HTTPResponse(s);r.begin();assert r.status==200'
           ./tests/smoke-test.sh
           docker run --rm -i --entrypoint python3 "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}" -c 'import sys; sys.path.insert(0,"/core/bin/timelapse"); __file__="/core/test-timelapse-player-overlay.py"; exec(compile(sys.stdin.read(),__file__,"exec"))' < tests/test-timelapse-player-overlay.py
           docker run --rm -i --entrypoint python3 "${{ steps.release.outputs.image }}:${{ steps.release.outputs.release_version }}-${arch}" -c 'import sys; sys.path.insert(0,"/core/bin/timelapse"); __file__="/core/test-snapshot-overlay.py"; exec(compile(sys.stdin.read(),__file__,"exec"))' < tests/test-snapshot-overlay.py
@@ -202,6 +213,9 @@ jobs:
             --tag "$GHCR_IMAGE:$PRODUCT_VERSION" \
             "$GHCR_IMAGE:$RELEASE_VERSION-amd64" \
             "$GHCR_IMAGE:$RELEASE_VERSION-arm64"
+          docker buildx imagetools create --tag "$GHCR_IMAGE:receiver-$RELEASE_VERSION" "$GHCR_IMAGE:receiver-$RELEASE_VERSION-amd64" "$GHCR_IMAGE:receiver-$RELEASE_VERSION-arm64"
+          docker buildx imagetools inspect --raw "$GHCR_IMAGE:receiver-$RELEASE_VERSION" > /tmp/receiver-manifest.json
+          python3 scripts/verify-multiarch-manifest.py /tmp/receiver-manifest.json
           # Compatibility tags remain available to the already-installed NKL updater.
           docker buildx imagetools create \
             --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$RELEASE_VERSION" \

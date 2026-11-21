@@ -1,4 +1,4 @@
-# Vortex 1.7 Beta / 0.3.0-dev37
+# Vortex 1.8 Beta / 0.3.0-dev38
 
 Player-Overlays werden im DVR auf die letzten 5 Minuten begrenzt (kanalweise auf 10 Minuten umstellbar); keine zusätzliche Transcodierung.
 
@@ -12,12 +12,10 @@ Quellrepository und Container-Image:
 - `https://github.com/glatzkopf94/vortex`
 - `ghcr.io/glatzkopf94/restreamer-nistkastenlivestream`
 
-Neu in **1.7 Beta**: FTPS-Zertifikatsbestätigung, parallele Tages- und
-Saisonzeitraffer mit gemeinsamen Tagesparametern, vollständige HEVC-Codec-Erkennung
-und Player-Overlays als feste Bildbestandteile im Zeitraffer ohne Live-Transcoding.
+Neu in **1.8 Beta** sind der verwaltete Reolink-UID-Empfang, die DVR-Bereinigung nach Empfangslücken und Zeitmarken im Saisonzeitraffer.
 Alle Änderungen stehen im [Changelog](CHANGELOG.md). Anleitung: [Zeitraffer](TIMELAPSE.md).
 
-Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev37`
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev38`
 veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
 bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
 verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und

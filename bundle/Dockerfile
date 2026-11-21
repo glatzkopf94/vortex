@@ -1,5 +1,5 @@
-ARG RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev37
-ARG CORE_IMAGE=nkl/restreamer-core:0.3.0-dev37
+ARG RESTREAMER_UI_IMAGE=nkl/restreamer-ui:0.3.0-dev38
+ARG CORE_IMAGE=nkl/restreamer-core:0.3.0-dev38
 ARG FFMPEG_IMAGE=nkl/ffmpeg:9.0.1
 
 FROM ${RESTREAMER_UI_IMAGE} AS restreamer-ui
@@ -35,7 +35,7 @@ ENV CORE_CONFIGFILE=/core/config/config.json \
     OVERLAY_TEMPERATURE_DECIMALS=1 \
     OVERLAY_HUMIDITY_DECIMALS=0 \
     NKL_TIMELAPSE_ENABLE=true \
-    NKL_RELEASE_VERSION=0.3.0-dev37 \
+    NKL_RELEASE_VERSION=0.3.0-dev38 \
     NKL_RELEASE_REPOSITORY=https://github.com/glatzkopf94/vortex
 
 EXPOSE 8080/tcp 8181/tcp 1935/tcp 1936/tcp 6000/udp

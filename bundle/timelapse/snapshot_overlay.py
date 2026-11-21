@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from urllib.parse import urlsplit
 from player_overlay import capture_filter
 
@@ -30,7 +31,78 @@ def snapshot_channel(args):
     if Path(urlsplit(value('-i') or '').path).name != channel+'.m3u8': return None
     return channel
 
+def repair_dvr(args, root, now):
+    """Keep a playable suffix with stable HLS sequence numbers at writer startup."""
+    target = args[-1]
+    if target.startswith('['):
+        options, sep, target = target.partition(']')
+        match = re.search(r'[:\[]hls_max_window_duration=(\d+)(?=:|$)', options)
+        if not sep or not match or 'append_list' not in options:
+            return
+        target = target.split('|', 1)[0]
+        window = int(match[1])
+    else:
+        if '-hls_max_window_duration' not in args or '-hls_flags' not in args:
+            return
+        if 'append_list' not in args[args.index('-hls_flags') + 1].split('+'):
+            return
+        window = int(args[args.index('-hls_max_window_duration') + 1])
+    path = Path(target)
+    if window <= 0 or path.parent != root or path.suffix != '.m3u8' or not path.is_file():
+        return
+    lines = path.read_text().splitlines()
+    if not lines or lines[0] != '#EXTM3U':
+        return
+    entries = []
+    for i, line in enumerate(lines):
+        if line and not line.startswith('#'):
+            segment = path.parent / line
+            if not segment.stem.isdecimal() or root not in segment.parents:
+                return
+            entries.append((i, segment))
+    cut = 0
+    for count, (_, segment) in enumerate(entries, 1):
+        if int(segment.stem) < now - window or not segment.is_file():
+            cut = count
+    if not cut:
+        return
+    end = entries[cut - 1][0] + 1
+    header = []
+    active = {}
+    discontinuities = 0
+    sequence = None
+    for line in lines[:end]:
+        if line.startswith('#EXT-X-MEDIA-SEQUENCE:'):
+            sequence = int(line.split(':')[1])
+        elif line == '#EXT-X-DISCONTINUITY':
+            discontinuities += 1
+        elif line.startswith('#EXT-X-DISCONTINUITY-SEQUENCE:'):
+            discontinuities += int(line.split(':')[1])
+        elif line.startswith(('#EXT-X-MAP:', '#EXT-X-KEY:')):
+            active[line.split(':')[0]] = line
+        elif line.startswith(('#EXT-X-VERSION:', '#EXT-X-TARGETDURATION:', '#EXT-X-INDEPENDENT-SEGMENTS')) or line == '#EXTM3U':
+            header.append(line)
+    header.append(f'#EXT-X-MEDIA-SEQUENCE:{(sequence or 0) + cut}')
+    if discontinuities:
+        header.append(f'#EXT-X-DISCONTINUITY-SEQUENCE:{discontinuities}')
+    if cut < len(entries):
+        header.extend(active.values())
+    with tempfile.NamedTemporaryFile(mode='w', dir=root, delete=False) as tmp:
+        replacement = Path(tmp.name)
+        try:
+            tmp.write('\n'.join(header + lines[end:]) + '\n')
+            tmp.flush()
+            os.fchmod(tmp.fileno(), path.stat().st_mode & 0o777)
+            os.replace(replacement, path)
+        finally:
+            replacement.unlink(missing_ok=True)
+
+
 def main():
+    if sys.argv[1:2] == ['--dvr-start']:
+        args = sys.argv[2:]
+        repair_dvr(args, Path(os.environ.get('CORE_STORAGE_DISK_DIR', '/core/data')), time.time())
+        os.execv(REAL, [REAL, *args])
     args=sys.argv[1:];channel=snapshot_channel(args)
     if channel is None: os.execv(REAL,[REAL,*args])
     with tempfile.TemporaryDirectory(prefix='vortex-preview-',dir='/tmp') as tmp:

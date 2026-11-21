@@ -4,7 +4,7 @@
   window.nklOpenTimelapse = async function (context) {
     if (window.nklTimelapseClose) return;
     if(!window.nklTimelineMarkers || !window.nklConfigureTimelapseBuffer){
-      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=timelapse-buffer-v3';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
+      await new Promise(resolve=>{var script=document.createElement('script');script.src='player/videojs/dist/timeline-markers.js?nkl=timelapse-calendar-v4';script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);});
     }
     if(window.nklTimelapseClose)return;
     context.onOpen();

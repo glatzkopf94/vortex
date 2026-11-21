@@ -10,11 +10,13 @@ python3 tests/test-ftps-trust.py
 python3 tests/test-ftps-session.py
 python3 tests/test-timelapse-combined.py
 python3 tests/test-timelapse-player-overlay.py
-docker build -f core/Dockerfile -t nkl/restreamer-core:timelapse-local core
-docker build -f ui/Dockerfile -t nkl/restreamer-ui:timelapse-local ui
+image_prefix=${VORTEX_UID_BUILD_PREFIX:-nkl/restreamer}
+image=${VORTEX_UID_IMAGE:-nkl/restreamer:timelapse-local}
+docker build -f core/Dockerfile -t "${image_prefix}-core:timelapse-local" core
+docker build -f ui/Dockerfile -t "${image_prefix}-ui:timelapse-local" ui
 docker build -f bundle/Dockerfile \
   --build-arg FFMPEG_IMAGE=ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev21 \
-  --build-arg CORE_IMAGE=nkl/restreamer-core:timelapse-local \
-  --build-arg RESTREAMER_UI_IMAGE=nkl/restreamer-ui:timelapse-local \
-  -t nkl/restreamer:timelapse-local .
+  --build-arg CORE_IMAGE="${image_prefix}-core:timelapse-local" \
+  --build-arg RESTREAMER_UI_IMAGE="${image_prefix}-ui:timelapse-local" \
+  -t "$image" .
 echo 'Lokales Testimage fertig. Start: docker compose -f compose.timelapse-local.yaml up -d'

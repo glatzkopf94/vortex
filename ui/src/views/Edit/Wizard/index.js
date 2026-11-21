@@ -241,7 +241,7 @@ export default function Wizard({ restreamer = null }) {
 		let knownSources = [];
 		for (let s in $skills.sources) {
 			if (s === 'network') {
-				knownSources.push('network');
+				knownSources.push('network', 'reolink');
 				if ($skills.protocols.input.includes('rtmp')) {
 					knownSources.push('rtmp');
 				}
@@ -352,6 +352,7 @@ export default function Wizard({ restreamer = null }) {
 				ready={$sources.video.ready}
 			>
 				<Component
+					restreamer={restreamer}
 					knownDevices={$skills.sources[s.type]}
 					config={$config.source[s.type]}
 					settings={$sources.video.settings}

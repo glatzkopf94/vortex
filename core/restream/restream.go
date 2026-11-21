@@ -1332,7 +1332,18 @@ func (r *restream) GetProcessLog(id string) (*app.Log, error) {
 }
 
 func (r *restream) Probe(id string) app.Probe {
-	return r.ProbeWithTimeout(id, 20*time.Second)
+	timeout := 20 * time.Second
+	r.lock.RLock()
+	if task := r.tasks[id]; task != nil && task.valid {
+		for _, input := range task.config.Input {
+			if strings.HasPrefix(input.Address, "rtsp://reolink:") {
+				timeout = 40 * time.Second
+				break
+			}
+		}
+	}
+	r.lock.RUnlock()
+	return r.ProbeWithTimeout(id, timeout)
 }
 
 func (r *restream) ProbeWithTimeout(id string, timeout time.Duration) app.Probe {

@@ -81,3 +81,19 @@ test('channel refresh on API failure preserves the current registry', async () =
  expect(c.channels).toBe(channels);
  expect(c._discoverChannels).not.toHaveBeenCalled();
 });
+
+test.each([true, false])('UID Core probe reports a failed media open only on failure (video=%s)', async hasVideo => {
+ const address = 'rtsp://reolink:18554/camera/main';
+ const token = {id:'camera', stream:'main', token:'probe-one'};
+ const c = {...context(), uidProbeTokens:new Map([[address, token]]), api:{}, _deleteProcess:jest.fn(),
+  _call:jest.fn().mockResolvedValueOnce([{},null])
+   .mockResolvedValueOnce([{streams:hasVideo ? [{type:'video'}] : [], log:[]},null])
+   .mockResolvedValueOnce([{message:'Kamera-Empfänger wird neu gestartet'},null])};
+ const [result] = await Restreamer.prototype.Probe.call(c,id,[{address,options:[]}]);
+ expect(c._call).toHaveBeenCalledTimes(hasVideo ? 2 : 3);
+ expect(c.uidProbeTokens.size).toBe(0);
+ if (!hasVideo) {
+  expect(JSON.parse(c._call.mock.calls[2][3].body)).toEqual({...token,core_failed:true});
+  expect(result.log).toContain('Kamera-Empfänger wird neu gestartet');
+ }
+});

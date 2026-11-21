@@ -509,6 +509,7 @@ export default function Edit({ restreamer = null }) {
 								/>
 							) : (
 								<Profile
+									restreamer={restreamer}
 									channelid={_channelid}
 									skills={$skills}
 									sources={$data.sources}

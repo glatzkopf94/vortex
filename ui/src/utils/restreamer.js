@@ -2205,6 +2205,16 @@ class Restreamer {
 		// 5. Push output
 		proc.output.push(output);
 
+        for (const input of inputs) {
+            const uidCheck = this.uidConfirmed?.get(input.address);
+            if (!uidCheck) continue;
+            const [, saveError] = await this._call(this.api._call, 'POST', '/v3/reolink/status', {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...uidCheck, core_ok: true }),
+            });
+            if (saveError) return [null, saveError];
+            this.uidConfirmed.delete(input.address);
+        }
 		const [val, err] = await this._upsertProcess(channel.id, proc);
 		if (err !== null) {
 			return [val, err];
@@ -2387,7 +2397,11 @@ class Restreamer {
 		[val, err] = await this._call(this.api.ProcessProbe, id);
 		await this._deleteProcess(id);
 
-		if (uidCheck && (err || !val?.streams?.some((stream) => stream.type === 'video'))) {
+		if (uidCheck && !err && val?.streams?.some((stream) => stream.type === 'video')) {
+            this.uidConfirmed ??= new Map();
+            this.uidConfirmed.set(address, uidCheck);
+        }
+        if (uidCheck && (err || !val?.streams?.some((stream) => stream.type === 'video'))) {
             const [recovery, recoveryError] = await this._call(this.api._call, 'POST', '/v3/reolink/status', {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...uidCheck, core_failed: true }),

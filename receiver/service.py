@@ -19,6 +19,8 @@ cameras = {}
 workers = {}
 states = {}
 tests = {}
+pending = set()
+TEMP = Path(tempfile.mkdtemp(prefix="vortex-uid-"))
 
 
 def restart(cid):
@@ -58,44 +60,47 @@ def field(body, key, maximum):
     return value
 
 
-def save(body):
+def discard(cid):
     with LOCK:
-        cid = body.get('id')
-        old = cameras.get(cid)
-        if cid and not old:
-            raise ValueError('Kamera unbekannt')
-        cam = dict(old or {})
-        cam['name'] = field(body, 'name', 100)
-        for key in ('uid', 'username', 'password'):
-            if not old or body.get(key):
-                cam[key] = field(body, key, 256)
-        # Preserve existing Test55 preferences for rollback. New or reassigned
-        # cameras should also select dynamic ACK if reopened with Test55.
-        if not old or cam['uid'] != old['uid']:
-            cam.update(profile='auto', dynamic_profile=True)
-            cam.pop('detected', None)
-            cam.pop('dynamic_detected', None)
-        if any(c['uid'] == cam['uid'] and c['id'] != cid for c in cameras.values()):
-            raise ValueError('Diese UID ist bereits gespeichert. Kamera aus der Liste auswählen.')
-        if not old:
-            cam['id'] = uuid.uuid4().hex
-            used = {c['port'] for c in cameras.values()}
-            cam['port'] = next(p for p in range(18554, 28554) if p not in used)
-        cid = cam['id']
-        atomic(ROOT / 'cameras.json', json.dumps({**cameras, cid: cam}))
+        if cid not in pending:
+            return
+        pending.remove(cid)
+        proc = workers.pop(cid, None)
+        if proc is not None:
+            proc.kill()
+        cameras.pop(cid, None)
+        tests.pop(cid, None)
+        states.pop(cid, None)
+        (TEMP / (cid + '.toml')).unlink(missing_ok=True)
+
+
+def save(body):
+    cam = {key: field(body, key, 100 if key == 'name' else 256)
+           for key in ('name', 'uid', 'username', 'password')}
+    with LOCK:
+        for existing in cameras.values():
+            if existing['id'] not in pending and all(existing[k] == cam[k] for k in ('uid', 'username', 'password')):
+                return public(existing)
+        cid = uuid.uuid4().hex
+        used = {c['port'] for c in cameras.values()}
+        cam.update(id=cid, port=next(p for p in range(18554, 28554) if p not in used),
+                   profile='auto', dynamic_profile=True)
         cameras[cid] = cam
-        if cid not in workers or not old or any(cam[k] != old[k] for k in ('uid', 'username', 'password')):
-            tests.pop(cid, None)
-            if cid in workers:
-                restart(cid)
-            else:
-                start(cam)
+        pending.add(cid)
+        try:
+            start(cam)
+        except Exception:
+            discard(cid)
+            raise
+        timer = threading.Timer(1800, discard, (cid,))
+        timer.daemon = True
+        timer.start()
         return public(cam)
 
 
 def start(cam):
     cid = cam['id']
-    config = ROOT / (cid + '.toml')
+    config = (TEMP if cid in pending else ROOT) / (cid + '.toml')
     values = {'name': cid, **{k: cam[k] for k in ('uid', 'username', 'password')}}
     text = 'bind = "0.0.0.0"\nbind_port = %d\n[[cameras]]\n' % cam['port']
     text += 'discovery = "relay"\nstream = "both"\npush_notifications = false\nuse_splash = false\n'
@@ -118,6 +123,8 @@ def watch(cid, proc):
             for marker, state in markers:
                 if marker in line:
                     with LOCK:
+                        if workers.get(cid) is not proc:
+                            break
                         previous = states.get(cid)
                         if previous == 'Empfänger wird neu gestartet':
                             break
@@ -244,7 +251,7 @@ def probe(cam, kind, job):
         status, message = 'error', 'Empfangsdienst konnte die Prüfung nicht abschließen'
     with LOCK:
         if tests.get(cid) is job:
-            if status == 'error' and cid in workers and 'abgelehnt' not in states.get(cid, ''):
+            if status == 'error' and cid not in pending and cid in workers and 'abgelehnt' not in states.get(cid, ''):
                 restart(cid)
                 message += ' · Kamera-Empfänger wird neu gestartet'
             job.update(status=status, message=message)
@@ -253,7 +260,7 @@ def probe(cam, kind, job):
 def dispatch(path, body):
     with LOCK:
         if path == '/cameras':
-            return {'cameras': [public(c) for c in cameras.values()]}
+            return {'cameras': []}
         if path == '/save':
             return save(body)
         cid = body.get('id')
@@ -261,10 +268,21 @@ def dispatch(path, body):
             raise ValueError('Kamera oder Stream unbekannt')
         kind = body['stream']
         job = tests.get(cid)
+        if path == '/status' and body.get('core_ok') is True:
+            if not job or job['stream'] != kind or job['token'] != body.get('token') or job['status'] != 'ok':
+                raise ValueError('Prüfung abgelaufen')
+            if cid in pending:
+                records = {k:v for k,v in cameras.items() if k == cid or k not in pending}
+                atomic(ROOT / 'cameras.json', json.dumps(records))
+                pending.remove(cid)
+            return job.copy()
         if path == '/status' and body.get('core_failed') is True:
             if not job or job['stream'] != kind or job['token'] != body.get('token'):
                 raise ValueError('Prüfung abgelaufen')
             if job['status'] == 'ok':
+                if cid in pending:
+                    discard(cid)
+                    return dict(status='error', message='Vortex konnte den RTSP-Stream nicht öffnen · temporäre Verbindung beendet')
                 restart(cid)
                 job.update(status='error', message='Vortex konnte den RTSP-Stream nicht öffnen · Kamera-Empfänger wird neu gestartet')
             return job.copy()
@@ -273,7 +291,10 @@ def dispatch(path, body):
             threading.Thread(target=probe, args=(cameras[cid], kind, job), daemon=True).start()
         if not job or job['stream'] != kind or (path == '/status' and job['token'] != body.get('token')):
             raise ValueError('Andere Prüfung aktiv oder Ergebnis abgelaufen')
-        return job.copy()
+        result = job.copy()
+        if path == '/status' and cid in pending and job['status'] == 'error':
+            discard(cid)
+        return result
 
 
 class Handler(BaseHTTPRequestHandler):

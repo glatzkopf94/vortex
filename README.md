@@ -1,4 +1,4 @@
-# Vortex 1.8 Beta / 0.3.0-dev38
+# Vortex 1.8 Beta / 0.3.0-dev39
 
 Player-Overlays werden im DVR auf die letzten 5 Minuten begrenzt (kanalweise auf 10 Minuten umstellbar); keine zusätzliche Transcodierung.
 
@@ -15,7 +15,7 @@ Quellrepository und Container-Image:
 Neu in **1.8 Beta** sind der verwaltete Reolink-UID-Empfang, die DVR-Bereinigung nach Empfangslücken und Zeitmarken im Saisonzeitraffer.
 Alle Änderungen stehen im [Changelog](CHANGELOG.md). Anleitung: [Zeitraffer](TIMELAPSE.md).
 
-Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev38`
+Das identische Multiarch-Image wird auch als `ghcr.io/glatzkopf94/vortex:0.3.0-dev39`
 veröffentlicht. Der bisherige Imagepfad und das gleichnamige Installations-ZIP
 bleiben für bereits installierte NKL-Updater verfügbar. Neue Installationen
 verwenden den Containernamen `vortex`; explizite bestehende Instanznamen und

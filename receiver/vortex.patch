@@ -299,3 +299,31 @@ index c7a88c4..accb632 100644
          factory.set_launch("videotestsrc pattern=\"snow\" ! video/x-raw,width=896,height=512,framerate=25/1 ! textoverlay name=\"inittextoverlay\" text=\"Stream not Ready\" valignment=top halignment=left font-desc=\"Sans, 32\" ! jpegenc ! rtpjpegpay name=pay0");
          factory.set_transport_mode(RTSPTransportMode::PLAY);
          factory
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -43,7 +43,7 @@
+ uuid = { version = "1.8.0", features = ["v4"] }
+ validator = {version="0.18.1", features = ["derive"] }
+ 
+-[target.'cfg(not(target_env = "msvc"))'.dependencies]
++[target.'cfg(not(any(target_env = "msvc", all(target_os = "linux", target_arch = "aarch64"))))'.dependencies]
+ tikv-jemallocator = "0.5"
+ 
+ [features]
+diff --git a/src/main.rs b/src/main.rs
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -22,10 +22,10 @@
+ //!
+ //! Neolink source code is available online at <https://github.com/QuantumEntangledAndy/neolink>
+ //!
+-#[cfg(not(target_env = "msvc"))]
++#[cfg(not(any(target_env = "msvc", all(target_os = "linux", target_arch = "aarch64"))))]
+ use tikv_jemallocator::Jemalloc;
+ 
+-#[cfg(not(target_env = "msvc"))]
++#[cfg(not(any(target_env = "msvc", all(target_os = "linux", target_arch = "aarch64"))))]
+ #[global_allocator]
+ static GLOBAL: Jemalloc = Jemalloc;
+ 

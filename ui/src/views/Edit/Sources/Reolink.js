@@ -7,7 +7,7 @@ export const name = 'Reolink-Kamera per UID';
 export const capabilities = ['video'];
 export const ffversion = '^9.0.0';
 export const icon = VideocamIcon;
-const empty = { id: '', name: '', uid: '', username: '', password: '' };
+const empty = { name: '', uid: '', username: '', password: '' };
 export const func = {
 	initSettings: (settings) => ({ stream: 'main', ...settings }),
 	createInputs: ({ id, port, stream }) => [
@@ -19,13 +19,11 @@ export const func = {
 };
 
 export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onPending }) {
-	const [list, setList] = React.useState([]);
 	const [camera, setCamera] = React.useState(empty);
 	const [stream, setStream] = React.useState(settings.stream || 'main');
 	const [busy, setBusy] = React.useState(false);
 	const [message, setMessage] = React.useState('');
 	const mounted = React.useRef(false);
-	const initial = React.useRef(settings.id);
 	const call = React.useCallback(
 		async (path, body) => {
 			const [result, error] = await restreamer._call(
@@ -42,21 +40,10 @@ export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onP
 
 	React.useEffect(() => {
 		mounted.current = true;
-		let active = true;
-		call('cameras')
-			.then(({ cameras }) => {
-				if (!active) return;
-				setList(cameras);
-				setCamera({ ...empty, ...cameras.find((c) => c.id === initial.current) });
-			})
-			.catch((e) => {
-				if (active) setMessage(e.message);
-			});
 		return () => {
-			active = false;
 			mounted.current = false;
 		};
-	}, [call]);
+	}, []);
 
 	function invalidate() {
 		setMessage('');
@@ -74,8 +61,6 @@ export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onP
 		try {
 			const saved = await call('save', camera);
 			if (!mounted.current) return;
-			setCamera({ ...empty, ...saved });
-			setList((rows) => [...rows.filter((c) => c.id !== saved.id), saved]);
 			const source = { id: saved.id, port: saved.port, stream };
 			let job = await call('probe', source);
 			const deadline = Date.now() + 420000;
@@ -106,23 +91,6 @@ export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onP
 	}
 	return (
 		<Stack spacing={2}>
-			<TextField
-				select
-				disabled={busy}
-				label="Gespeicherte Kamera"
-				value={camera.id}
-				onChange={(e) => {
-					invalidate();
-					setCamera({ ...empty, ...list.find((c) => c.id === e.target.value) });
-				}}
-			>
-				<MenuItem value="">Neue Kamera</MenuItem>
-				{list.map((c) => (
-					<MenuItem key={c.id} value={c.id}>
-						{c.name}
-					</MenuItem>
-				))}
-			</TextField>
 			{[
 				['name', 'Kameraname'],
 				['uid', 'UID'],
@@ -136,8 +104,6 @@ export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onP
 					disabled={busy}
 					autoComplete={key === 'password' ? 'new-password' : 'off'}
 					value={camera[key]}
-					InputLabelProps={camera.id && key === 'password' ? { shrink: true } : undefined}
-					placeholder={camera.id && key === 'password' ? '••••••••' : ''}
 					onChange={(e) => edit(key, e.target.value)}
 				/>
 			))}
@@ -154,7 +120,7 @@ export function CameraSource({ restreamer, settings = {}, onChange, onProbe, onP
 				<MenuItem value="main">Hauptstream</MenuItem>
 				<MenuItem value="sub">Substream</MenuItem>
 			</TextField>
-			<Button variant="outlined" disabled={busy || !camera.name || !camera.uid || !camera.username || (!camera.id && !camera.password)} onClick={check}>
+			<Button variant="outlined" disabled={busy || !camera.name || !camera.uid || !camera.username || !camera.password} onClick={check}>
 				Quelle prüfen
 			</Button>
 			<Typography role="status">{message}</Typography>

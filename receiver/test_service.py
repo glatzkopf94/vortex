@@ -21,26 +21,24 @@ class ReceiverTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.evaluate(data, seconds)
 
-    def test_store_and_rename(self):
-        with tempfile.TemporaryDirectory() as tmp, patch.object(service,'ROOT',Path(tmp)), \
-             patch.dict(service.cameras,clear=True), patch.dict(service.workers,clear=True), \
-             patch.object(service,'start') as start:
-            body=dict(name='Test',uid='SIMULATED',username='viewer',password='abc"123',profile='rlc810wa')
-            camera=service.save(body)
-            self.assertEqual(set(camera),{'id','name','port','uid','username'})
-            worker=service.workers[camera['id']]=Mock()
-            renamed=service.save({**camera,'name':'Werkstatt'})
-            self.assertEqual(renamed['id'],camera['id'])
-            start.assert_called_once()
-            worker.terminate.assert_not_called()
-            path=Path(tmp)/'cameras.json'
-            self.assertEqual(stat.S_IMODE(path.stat().st_mode),0o600)
-            self.assertEqual(json.loads(path.read_text())[camera['id']]['password'],body['password'])
-            self.assertNotIn(body['password'],json.dumps(service.dispatch('/cameras',{})))
+    def test_new_entry_is_private_until_channel_save(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(service,'ROOT',Path(tmp)), patch.dict(service.cameras,clear=True), patch.object(service,'start'), patch('service.threading.Timer'):
+            body=dict(name='Test',uid='SIMULATED',username='viewer',password='mock-secret')
+            first=service.save(body)
+            cid=first['id']
+            db=Path(tmp)/'cameras.json'
+            self.assertFalse(db.exists())
+            self.assertEqual(service.dispatch('/cameras',{}), {'cameras':[]})
             with self.assertRaises(ValueError):
-                service.save(body)
-            service.save({**renamed,'profile':'auto'})
-            worker.terminate.assert_not_called()
+                service.save({**body,'password':''})
+            with patch.dict(service.tests,{cid:dict(stream='main',token='abc',status='ok')}):
+                service.dispatch('/status',dict(id=cid,stream='main',token='abc',core_ok=True))
+            self.assertEqual(json.loads(db.read_text())[cid]['password'],body['password'])
+            self.assertEqual(service.save(body)['id'],cid)
+            second=service.save({**body,'password':'fresh'})
+            self.assertNotEqual(second['id'],cid)
+            service.discard(second['id'])
+            self.assertEqual(set(service.cameras),{cid})
 
     def test_failure_checks_only_once(self):
         cam = dict(id='test', profile='auto', detected='rlc810wa')

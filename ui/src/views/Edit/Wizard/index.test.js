@@ -932,8 +932,9 @@ test('UID tile opens camera setup and requires a successful media check', async 
     expect(screen.getByRole('button',{name:'Next'})).toBeEnabled();
     expect(screen.getByLabelText('UID')).toHaveValue('TESTUID');
     expect(screen.getByLabelText('Kamerabenutzer')).toHaveValue('viewer');
-    expect(screen.getByLabelText('Kamerapasswort')).toHaveValue('');
-    expect(screen.getByLabelText('Kamerapasswort')).toHaveAttribute('placeholder','••••••••');
+    expect(screen.getByLabelText('Kamerapasswort')).toHaveAttribute('type','password');
+    expect(screen.queryByLabelText('Gespeicherte Kamera')).toBeNull();
+    expect(call.mock.calls.some(args => args[2].endsWith('/cameras'))).toBe(false);
     const probe = call.mock.calls.find(args => args[2].endsWith('/probe'));
     expect(JSON.parse(probe[3].body)).toEqual({id:saved.id,port:saved.port,stream:'main'});
 });

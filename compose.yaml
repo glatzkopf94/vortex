@@ -2,7 +2,7 @@ name: "${RESTREAMER_PROJECT_NAME:-restreamer-nkl}"
 
 services:
   restreamer-nkl:
-    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev39}"
+    image: "${RESTREAMER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:0.3.0-dev40}"
     container_name: "${RESTREAMER_CONTAINER_NAME:-vortex}"
     restart: unless-stopped
     depends_on: [reolink]
@@ -38,7 +38,7 @@ services:
       - timelapse:/core/timelapse
 
   reolink:
-    image: "${VORTEX_RECEIVER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:receiver-0.3.0-dev39}"
+    image: "${VORTEX_RECEIVER_IMAGE:-ghcr.io/glatzkopf94/restreamer-nistkastenlivestream:receiver-0.3.0-dev40}"
     init: true
     restart: unless-stopped
     networks: [uid-media]

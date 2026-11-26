@@ -1,7 +1,7 @@
 {
 	"name": "restreamer-ui",
-	"version": "0.3.0-dev39",
-	"bundle": "nkl-restreamer-0.3.0-dev39",
+	"version": "0.3.0-dev40",
+	"bundle": "nkl-restreamer-0.3.0-dev40",
 	"nklVersion": "1.8 Beta",
 	"packageManager": "yarn@1.22.22",
 	"private": false,

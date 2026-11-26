@@ -20,6 +20,8 @@ workers = {}
 states = {}
 tests = {}
 pending = set()
+# Preserve the cooldown across worker replacement; observations belong to one worker.
+recovery_after = {}
 TEMP = Path(tempfile.mkdtemp(prefix="vortex-uid-"))
 
 
@@ -118,8 +120,23 @@ def watch(cid, proc):
     markers = [(b'Connecting to camera at', 'Suche per UID'), (b': Logging in', 'Kamera gefunden, Anmeldung läuft'),
                (b'Connected and logged in', 'Angemeldet'), (b'Connection Lost:', 'Verbindung unterbrochen'),
                (b'Login credentials were not accepted', 'Kamera gefunden, Anmeldung abgelehnt')]
+    failures = {}
+    healthy = {}
     with proc.stdout:
         for line in proc.stdout:
+            fault = re.search(rb"VORTEX_VIDEO_(STALL|END|OK) (mainStream|subStream)\s*$", line)
+            if fault:
+                with LOCK:
+                    if workers.get(cid) is proc and cid not in pending:
+                        stream = fault[2].decode()
+                        now = time.monotonic()
+                        if fault[1] == b'OK':
+                            healthy[stream] = now
+                            if failures.pop(stream, None) is not None:
+                                print(f'UID {cid[:8]} {stream}: Videopakete wieder da', flush=True)
+                        elif not any(now - stamp < 25 for other, stamp in healthy.items() if other != stream):
+                            media_fault(cid, stream, failures, now)
+                continue
             for marker, state in markers:
                 if marker in line:
                     with LOCK:
@@ -138,6 +155,22 @@ def watch(cid, proc):
     with LOCK:
         if workers.get(cid) is proc:
             start(cameras[cid])
+
+
+def media_fault(cid, stream, failures, now):
+    """Called under LOCK. Deduplicate simultaneous clients of the same stream."""
+    if states.get(cid) == 'Empfänger wird neu gestartet' or now < recovery_after.get(cid, 0):
+        return
+    previous = failures.get(stream)
+    if previous is None or now - previous > 180:
+        failures[stream] = now
+        print(f'UID {cid[:8]} {stream}: Medienempfang unterbrochen', flush=True)
+        return
+    if now - previous < 15:
+        return
+    recovery_after[cid] = now + 300
+    print(f'UID {cid[:8]} {stream}: wiederholter Medienausfall, neuer Verbindungsaufbau', flush=True)
+    restart(cid)
 
 
 def evaluate(output, duration):

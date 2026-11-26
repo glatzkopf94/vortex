@@ -327,3 +327,225 @@ diff --git a/src/main.rs b/src/main.rs
  #[global_allocator]
  static GLOBAL: Jemalloc = Jemalloc;
  
+diff --git a/crates/core/src/bc_protocol/connection/udpsource.rs b/crates/core/src/bc_protocol/connection/udpsource.rs
+index 7f31895..a39b64b 100644
+--- a/crates/core/src/bc_protocol/connection/udpsource.rs
++++ b/crates/core/src/bc_protocol/connection/udpsource.rs
+@@ -37,6 +37,34 @@ use tokio_util::{
+ 
+ const MTU: usize = 1350;
+ const UDPDATA_HEADER_SIZE: usize = 20;
++const ACK_BITMAP_LIMIT: usize = MTU - 28;
++const REORDER_WINDOW: u32 = 8192;
++
++fn ack_bitmap(first_missing: u32, received: &BTreeMap<u32, Vec<u8>>) -> Vec<u8> {
++    let mut bits = Vec::new();
++    for (&id, _) in received.range(first_missing..) {
++        let offset = (id - first_missing) as usize;
++        if offset >= ACK_BITMAP_LIMIT {
++            // Indicate missing packets up to the end of the advertised window.
++            bits.resize(ACK_BITMAP_LIMIT, 0);
++            break;
++        }
++        bits.resize(offset + 1, 0);
++        bits[offset] = 1;
++    }
++    bits
++}
++
++#[test]
++fn uid_recovery_ack_window() {
++    let packets = [(12, vec![]), (14, vec![])].iter().cloned().collect();
++    assert_eq!(ack_bitmap(10, &packets), vec![0, 0, 1, 0, 1]);
++    assert!(ack_bitmap(15, &packets).is_empty());
++    let distant = [(11, vec![]), (u32::MAX, vec![])].iter().cloned().collect();
++    let bits = ack_bitmap(10, &distant);
++    assert_eq!(bits.len(), ACK_BITMAP_LIMIT);
++    assert_eq!(bits[1], 1);
++}
+ 
+ pub(crate) type InnerFramed = Framed<Compat<IntoAsyncRead<UdpPayloadSource>>, BcCodex>;
+ pub(crate) struct UdpSource {
+@@ -590,6 +618,10 @@ impl UdpPayloadInner {
+                             if data.connection_id == self.client_id {
+                                 self.ack_profile.observe(Instant::now(), data.payload.len() as u32);
+                                 let packet_id = data.packet_id;
++                                if packet_id.saturating_sub(self.packets_want) >= REORDER_WINDOW {
++                                    log::warn!("VORTEX_UDP_GAP");
++                                    return Err(Error::BcUdpTimeout);
++                                }
+                                 if packet_id >= self.packets_want {
+                                     // error!("packets_want: {}", this.packets_want);
+                                     self.recieved.insert(packet_id, data.payload);
+@@ -624,22 +656,7 @@ impl UdpPayloadInner {
+                 // Happens if we have recieved but not consumed yet
+                 first_missing += 1;
+             }
+-            let missing_ids = if let Some(end) = self.recieved.keys().max() {
+-                let mut vec = vec![];
+-                // From last contiguous packet to last recieved packet
+-                // create a payload of `00` (unreceived) and `01` (received)
+-                // that can be used to form the `UdpAck` packet
+-                for i in (first_missing)..(end + 1) {
+-                    if self.recieved.contains_key(&i) {
+-                        vec.push(1)
+-                    } else {
+-                        vec.push(0)
+-                    }
+-                }
+-                vec
+-            } else {
+-                vec![]
+-            };
++            let missing_ids = ack_bitmap(first_missing, &self.recieved);
+ 
+             UdpAck {
+                 connection_id: self.camera_id,
+diff --git a/crates/core/src/bc_protocol/stream.rs b/crates/core/src/bc_protocol/stream.rs
+index a372bfb..c14134d 100644
+--- a/crates/core/src/bc_protocol/stream.rs
++++ b/crates/core/src/bc_protocol/stream.rs
+@@ -190,7 +190,10 @@ impl BcCamera {
+ 
+             sub_video.send(start_video).await?;
+ 
+-            let msg = sub_video.recv().await?;
++            let msg = tokio::select! {
++                _ = abort_handle_thread.cancelled() => return Ok(()),
++                reply = sub_video.recv() => reply?,
++            };
+             if let BcMeta {
+                 response_code: 200, ..
+             } = msg.meta
+diff --git a/src/common/camthread.rs b/src/common/camthread.rs
+index 7bdbd70..3477bf1 100644
+--- a/src/common/camthread.rs
++++ b/src/common/camthread.rs
+@@ -38,11 +38,11 @@ impl NeoCamThread {
+     async fn run_camera(&mut self, config: &CameraConfig) -> AnyResult<()> {
+         let name = config.name.clone();
+         log::trace!("Attempting connection with config: {config:?}");
+-        let camera = Arc::new(connect_and_login(config).await?);
++        let camera = Arc::new(timeout(Duration::from_secs(90), connect_and_login(config)).await??);
+         log::trace!("  - Connected");
+ 
+         sleep(Duration::from_secs(2)).await; // Delay a little since some calls will error if camera is waking up
+-        if let Err(e) = update_camera_time(&camera, &name, config.update_time).await {
++        if let Ok(Err(e)) = timeout(Duration::from_secs(8), update_camera_time(&camera, &name, config.update_time)).await {
+             log::warn!("Could not set camera time, (perhaps missing on this camera of your login in not an admin): {e:?}");
+         }
+         sleep(Duration::from_secs(2)).await; // Delay a little since some calls will error if camera is waking up
+@@ -57,7 +57,7 @@ impl NeoCamThread {
+             }
+             v = camera.join() => {
+                 v?;
+-                Ok(())
++                Err(anyhow::anyhow!("Camera transport ended"))
+             },
+             v = async {
+                 let mut interval = interval(Duration::from_secs(5));
+@@ -105,7 +105,7 @@ impl NeoCamThread {
+     // A watch sender is used to send the new camera
+     // whenever it changes
+     pub(crate) async fn run(&mut self) -> AnyResult<()> {
+-        const MAX_BACKOFF: Duration = Duration::from_secs(5);
++        const MAX_BACKOFF: Duration = Duration::from_secs(30);
+         const MIN_BACKOFF: Duration = Duration::from_millis(50);
+ 
+         let mut backoff = MIN_BACKOFF;
+diff --git a/src/common/instance/gst.rs b/src/common/instance/gst.rs
+index 7dccd3b..ee33695 100644
+--- a/src/common/instance/gst.rs
++++ b/src/common/instance/gst.rs
+@@ -182,19 +182,52 @@ impl NeoInstance {
+         let thread_camera = self.clone();
+         tokio::task::spawn(
+             tokio::task::spawn(async move {
+-                thread_camera
+-                    .run_task(move |cam| {
++                let client = media_tx.clone();
++                tokio::select! {
++                    _ = client.closed() => AnyResult::Ok(()),
++                    result = thread_camera.run_task(move |cam| {
+                         let media_tx = media_tx.clone();
+                         Box::pin(async move {
+                             let mut media_stream = cam.start_video(stream, 0, strict).await?;
+                             log::trace!("Camera started");
+-                            while let Ok(media) = media_stream.get_data().await? {
++                            // Audio and stream metadata can continue after video has stopped.
++                            let grace = Duration::from_secs(30);
++                            let mut deadline = tokio::time::Instant::now() + grace;
++                            let mut next_report = tokio::time::Instant::now();
++                            loop {
++                                let media = tokio::select! {
++                                    biased;
++                                    _ = media_tx.closed() => return Ok(()),
++                                    _ = tokio::time::sleep_until(deadline) => {
++                                        log::warn!("VORTEX_VIDEO_STALL {stream}");
++                                        break;
++                                    }
++                                    item = media_stream.get_data() => match item {
++                                        Ok(Ok(media)) => media,
++                                        _ => {
++                                            if !media_tx.is_closed() {
++                                                log::warn!("VORTEX_VIDEO_END {stream}");
++                                            }
++                                            break;
++                                        }
++                                    }
++                                };
++                                if matches!(&media, BcMedia::Iframe(frame) if !frame.data.is_empty())
++                                    || matches!(&media, BcMedia::Pframe(frame) if !frame.data.is_empty())
++                                {
++                                    let now = tokio::time::Instant::now();
++                                    deadline = now + grace;
++                                    if now >= next_report {
++                                        log::info!("VORTEX_VIDEO_OK {stream}");
++                                        next_report = now + Duration::from_secs(15);
++                                    }
++                                }
+                                 media_tx.send(media).await?;
+                             }
+                             AnyResult::Ok(())
+                         })
+-                    })
+-                    .await
++                    }) => result,
++                }
+             })
+             .and_then(|res| async move {
+                 log::debug!("Camera finished streaming: {res:?}");
+diff --git a/src/rtsp/factory.rs b/src/rtsp/factory.rs
+index 43362e4..01fb79e 100644
+--- a/src/rtsp/factory.rs
++++ b/src/rtsp/factory.rs
+@@ -178,7 +178,15 @@ pub(super) async fn make_factory(
+                         let mut buffer = vec![];
+                         let mut frame_count = 0usize;
+ 
+-                        let mut stream_config = StreamConfig::new(&camera, stream).await?;
++                        let mut stream_config = match tokio::time::timeout(
++                            Duration::from_secs(30), StreamConfig::new(&camera, stream)
++                        ).await {
++                            Ok(result) => result?,
++                            Err(_) => {
++                                log::warn!("VORTEX_VIDEO_STALL {stream}");
++                                return Err(anyhow!("Camera stream configuration timed out"));
++                            }
++                        };
+                         while let Some(media) = media_rx.recv().await {
+                             stream_config.update_from_media(&media);
+                             buffer.push(media);
+@@ -276,7 +284,11 @@ pub(super) async fn make_factory(
+                                 }
+                                 r?;
+                             }
+-                            log::trace!("All media recieved");
++                            // Wake RTSP consumers when the upstream channel is closed.
++                            for app in vid_src.iter().chain(aud_src.iter()) {
++                                let _ = app.end_of_stream();
++                            }
++                            log::trace!("Camera media ended");
+                             AnyResult::Ok(())
+                         });
+                         AnyResult::Ok(())
